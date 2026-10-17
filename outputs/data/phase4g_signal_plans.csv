@@ -1,0 +1,37 @@
+period,strategy,junction,cycle_s,ew_green_s,ns_green_s,lost_time_s,interphase_loss_s,ew_offset_s,ns_offset_s
+Overnight,Phase3A,A,40.0,16.0,12.0,12.0,6.0,0.0,22.0
+Overnight,Phase3A,B,40.0,16.0,12.0,12.0,6.0,36.0,18.0
+Overnight,Phase3A,C,40.0,15.0,13.0,12.0,6.0,1.0,22.0
+Overnight,Phase4E,A,40.0,16.0,12.0,12.0,6.0,0.0,22.0
+Overnight,Phase4E,B,40.0,16.0,12.0,12.0,6.0,39.0,21.0
+Overnight,Phase4E,C,40.0,15.0,13.0,12.0,6.0,2.0,23.0
+Overnight,Integrated,A,40.0,16.0,12.0,12.0,6.0,0.0,22.0
+Overnight,Integrated,B,40.0,16.0,12.0,12.0,6.0,39.0,21.0
+Overnight,Integrated,C,40.0,15.0,13.0,12.0,6.0,2.0,23.0
+AM peak,Phase3A,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+AM peak,Phase3A,B,150.0,88.0,50.0,12.0,6.0,36.0,130.0
+AM peak,Phase3A,C,150.0,95.0,43.0,12.0,6.0,81.0,32.0
+AM peak,Phase4E,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+AM peak,Phase4E,B,150.0,88.0,50.0,12.0,6.0,36.0,130.0
+AM peak,Phase4E,C,150.0,95.0,43.0,12.0,6.0,70.0,21.0
+AM peak,Integrated,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+AM peak,Integrated,B,150.0,88.0,50.0,12.0,6.0,36.0,130.0
+AM peak,Integrated,C,150.0,95.0,43.0,12.0,6.0,70.0,21.0
+Interpeak,Phase3A,A,40.0,17.0,11.0,12.0,6.0,0.0,23.0
+Interpeak,Phase3A,B,40.0,17.0,11.0,12.0,6.0,36.0,19.0
+Interpeak,Phase3A,C,40.0,17.0,11.0,12.0,6.0,1.0,24.0
+Interpeak,Phase4E,A,40.0,17.0,11.0,12.0,6.0,0.0,23.0
+Interpeak,Phase4E,B,40.0,17.0,11.0,12.0,6.0,38.0,21.0
+Interpeak,Phase4E,C,40.0,17.0,11.0,12.0,6.0,1.0,24.0
+Interpeak,Integrated,A,40.0,17.0,11.0,12.0,6.0,0.0,23.0
+Interpeak,Integrated,B,40.0,17.0,11.0,12.0,6.0,38.0,21.0
+Interpeak,Integrated,C,40.0,17.0,11.0,12.0,6.0,1.0,24.0
+PM peak,Phase3A,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+PM peak,Phase3A,B,150.0,90.0,48.0,12.0,6.0,36.0,132.0
+PM peak,Phase3A,C,150.0,92.0,46.0,12.0,6.0,81.0,29.0
+PM peak,Phase4E,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+PM peak,Phase4E,B,150.0,90.0,48.0,12.0,6.0,30.0,126.0
+PM peak,Phase4E,C,150.0,92.0,46.0,12.0,6.0,79.0,27.0
+PM peak,Integrated,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+PM peak,Integrated,B,150.0,90.0,48.0,12.0,6.0,30.0,126.0
+PM peak,Integrated,C,150.0,89.0,49.0,12.0,6.0,83.0,28.0

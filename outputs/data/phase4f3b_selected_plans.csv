@@ -1,0 +1,3 @@
+period,extra_ns_green_s,C_ew_offset_s,C_ns_offset_s,C_ew_green_s,C_ns_green_s,training_mean_network_delay_change_s,training_mean_C_ns_queue_change_veh,training_network_performance_pass,training_movement_fairness_pass,training_candidate_count
+AM peak,0,70,21.0,95.0,43.0,0.0,0.0,True,True,15
+PM peak,3,83,28.0,89.0,49.0,-8.574545068517684,-28.333333333333332,True,True,19

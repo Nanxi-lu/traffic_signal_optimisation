@@ -27,7 +27,11 @@ The completed work includes:
 - fairness-protected offset selection across four operating periods;
 - an initial full-junction experiment with competing north-south traffic;
 - a four-period, 30-seed full-junction robustness evaluation;
-- Junction C green-split sensitivity for the AM and PM peaks; and
+- Junction C green-split sensitivity for the AM and PM peaks;
+- fairness-constrained joint Junction C split-and-offset optimisation with
+  untouched holdout seeds;
+- a frozen four-period integrated-strategy audit against both Phase 3A and
+  Phase 4E; and
 - CSV outputs, figures and automated tests.
 
 It deliberately does **not** yet implement a field-calibrated or microscopic
@@ -326,6 +330,37 @@ or validation of a new operational timing plan. The earlier two-second
 directional fairness threshold is reported only as a reference here, not
 enforced as a constraint.
 
+Jointly search Junction C's green split and EW offset with:
+
+```bash
+python phase4f3b_joint_optimisation.py
+```
+
+Phase 4F-3B keeps A and B unchanged and searches 35 Junction C candidates: the
+five Phase 4F-3A green transfers crossed with offsets from 12 seconds before to
+12 seconds after the Phase 4E offset in four-second increments. Seeds 400--403
+screen the grid, seeds 400--411 enforce the training criteria, and untouched
+seeds 420--449 compare the frozen Phase 4E, split-only and joint plans. A plan
+is training-feasible only if network mean delay per passage does not increase
+and the upper endpoint of each EB, WB, C-N and C-S delay-change bootstrap
+interval is no greater than two seconds. Phase 4E is always retained as the
+fallback. This is a local synthetic search, not a global or field-validated
+optimum.
+
+Audit the frozen integrated strategy against Phase 3A and Phase 4E with:
+
+```bash
+python phase4g_integrated_audit.py
+```
+
+Phase 4G performs no optimisation. It uses the four Phase 4E plans, replacing
+only PM Junction C with the Phase 4F-3B 89/49-second EW/NS split and 83-second
+EW offset. The audit compares Phase 3A, Phase 4E and this integrated strategy
+over matched seeds 500--529 in the representative 02:00, 08:00, 12:00 and
+17:00 hours. Network and movement changes are calculated directly against each
+benchmark rather than adding results from experiments with different seeds.
+The non-PM integrated plans are required to reproduce Phase 4E exactly.
+
 ## Data and units
 
 `SyntheticDataConfig` in `traffic_signals/synthetic_data.py` holds the main
@@ -458,6 +493,20 @@ The workflow writes:
 - `outputs/data/phase4f3a_network_summary.csv` (after running `phase4f3a_green_split_sensitivity.py`)
 - `outputs/data/phase4f3a_paired_movements.csv` (after running `phase4f3a_green_split_sensitivity.py`)
 - `outputs/data/phase4f3a_movement_summary.csv` (after running `phase4f3a_green_split_sensitivity.py`)
+- `outputs/data/phase4f3b_screening.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_training_candidates.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_training_fairness.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_selected_plans.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_holdout_movements.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_holdout_network.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_holdout_network_summary.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4f3b_holdout_movement_summary.csv` (after running `phase4f3b_joint_optimisation.py`)
+- `outputs/data/phase4g_signal_plans.csv` (after running `phase4g_integrated_audit.py`)
+- `outputs/data/phase4g_network_metrics.csv` (after running `phase4g_integrated_audit.py`)
+- `outputs/data/phase4g_movement_metrics.csv` (after running `phase4g_integrated_audit.py`)
+- `outputs/data/phase4g_network_summary.csv` (after running `phase4g_integrated_audit.py`)
+- `outputs/data/phase4g_movement_summary.csv` (after running `phase4g_integrated_audit.py`)
+- `outputs/data/phase4g_fairness_audit.csv` (after running `phase4g_integrated_audit.py`)
 - `outputs/figures/synthetic_demand_profile.png`
 - `outputs/figures/synthetic_webster_cycles.png`
 - `outputs/figures/phase3b_time_space_overnight.png`
@@ -490,6 +539,9 @@ The workflow writes:
 - `outputs/figures/phase4f3a_network_delay_pm_peak.png`
 - `outputs/figures/phase4f3a_c_ns_queue_am_peak.png`
 - `outputs/figures/phase4f3a_c_ns_queue_pm_peak.png`
+- `outputs/figures/phase4f3b_holdout_am_peak.png`
+- `outputs/figures/phase4f3b_holdout_pm_peak.png`
+- `outputs/figures/phase4g_integrated_network.png`
 
 Both figure titles identify the data/model as synthetic.
 
@@ -563,3 +615,18 @@ nominal capacities assume 1,800 vehicles/hour saturation flow per approach,
 and equality between demand and nominal capacity provides no reserve. The
 movement and queue trade-offs remain consequences of the simplified FIFO,
 unlimited-storage model and are not evidence of real-world performance.
+Phase 4F-3B searches only 35 local Junction C combinations in two representative
+hours. Its training and holdout seeds are independent of one another but still
+come from the same synthetic demand model. The four movement bootstrap
+intervals are individual intervals rather than simultaneous guarantees, and
+their two-second upper-bound limit is an experimental choice. Holdout results
+do not establish performance under different demand assumptions, every vehicle
+trajectory, full-day timing transitions or field conditions.
+Phase 4G freezes the integrated plan before using fresh seeds, but it remains a
+synthetic audit of four representative hours rather than continuous operation
+or field validation. The PM integrated candidate passes the two-second
+movement-level bootstrap-upper-bound checks against Phase 4E but fails the
+eastbound check against Phase 3A. It must therefore be described as
+network-beneficial within this model with a cumulative directional fairness
+trade-off, not as fairness-protected against the original baseline. No plan was
+retuned after inspecting the Phase 4G results.
