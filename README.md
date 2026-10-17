@@ -31,12 +31,14 @@ The completed work includes:
 - fairness-constrained joint Junction C split-and-offset optimisation with
   untouched holdout seeds;
 - a frozen four-period integrated-strategy audit against both Phase 3A and
-  Phase 4E; and
+  Phase 4E;
+- a read-only Streamlit dashboard for paired network, movement-fairness and
+  signal-timing comparisons; and
 - CSV outputs, figures and automated tests.
 
 It deliberately does **not** yet implement a field-calibrated or microscopic
 traffic simulation, stochastic speeds, finite queue storage, machine learning,
-reinforcement learning or a dashboard.
+reinforcement learning or interactive re-optimisation.
 
 ## Setup
 
@@ -75,6 +77,25 @@ Run the tests with:
 ```bash
 python -m pytest
 ```
+
+Launch the Phase 5A dashboard with:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The dashboard opens at the local address printed by Streamlit (normally
+`http://localhost:8501`). It reads the committed Phase 4G CSV files and does not
+run optimisation or generate new simulation results. Its default view is the
+PM peak with Phase 3A as benchmark and Integrated as candidate. Use the sidebar
+to compare any saved period, Phase 3A or Phase 4E benchmark, and Phase 4E or
+Integrated candidate.
+
+For deployment, connect this GitHub repository to Streamlit Community Cloud,
+select the `main` branch and set `streamlit_app.py` as the entry point. The
+required `outputs/data/phase4g_*.csv` files and dependencies must remain in the
+repository. GitHub Pages can link to the deployed app but cannot run this Python
+Streamlit application itself.
 
 After running the Phase 1 demo, generate the Phase 2 time-of-day summary with:
 
@@ -630,3 +651,6 @@ eastbound check against Phase 3A. It must therefore be described as
 network-beneficial within this model with a cumulative directional fairness
 trade-off, not as fairness-protected against the original baseline. No plan was
 retuned after inspecting the Phase 4G results.
+Phase 5A only visualises the committed Phase 4G records. Its selectors recompute
+paired summaries and uncertainty intervals from those records; they do not
+create a new scenario, run the queue model or validate a signal plan.
