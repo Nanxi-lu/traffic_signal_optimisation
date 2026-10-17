@@ -1,0 +1,2 @@
+period,strategy,cycle_s,A_offset_s,B_offset_s,C_offset_s,fairness_limit_s,training_seeds,candidates_tested,feasible_candidates,baseline_EB_delay_s,baseline_WB_delay_s,baseline_combined_delay_s,optimised_EB_delay_s,optimised_WB_delay_s,optimised_combined_delay_s,optimised_residual_queue_mean
+AM peak,Phase4D_delay_aware_candidate,150,0,32,68,2.0,42-44,459,67,21.739081036360883,95.31857506802443,52.221080488625404,23.68209862942063,68.43329856642261,42.22131352781144,21.333333333333332

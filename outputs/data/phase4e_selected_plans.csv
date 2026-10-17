@@ -1,0 +1,5 @@
+period,cycle_s,A_offset_s,B_offset_s,C_offset_s,source,optimised_in_phase4e,candidate_count,shortlist_count,training_fairness_pass,training_performance_pass,training_mean_combined_delay_change_s,training_mean_residual_queue_change_veh
+Overnight,40,0,39,2,Phase4E_optimised,True,98,13,True,True,-1.4399107971221639,0.7708333333333334
+AM peak,150,0,36,70,Phase4D3_frozen,False,0,0,True,True,-8.943353856622595,-7.458333333333333
+Interpeak,40,0,38,1,Phase4E_optimised,True,56,3,True,True,-0.9661699446397334,0.08333333333333333
+PM peak,150,0,30,79,Phase4E_optimised,True,84,28,True,True,-5.8508583553015825,-0.4375

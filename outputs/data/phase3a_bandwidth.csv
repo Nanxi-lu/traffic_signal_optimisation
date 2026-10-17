@@ -1,0 +1,5 @@
+period,common_cycle_s,eastbound_bandwidth_s,bandwidth_ratio
+Overnight,40,15.0,0.375
+AM peak,150,87.0,0.58
+Interpeak,40,17.0,0.425
+PM peak,150,87.0,0.58

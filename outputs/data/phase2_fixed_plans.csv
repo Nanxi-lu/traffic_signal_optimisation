@@ -1,0 +1,13 @@
+intersection_id,period,p85_cycle_s,fixed_cycle_s
+A,Overnight,40.0,40
+A,AM peak,68.77302631578947,70
+A,Interpeak,40.0,40
+A,PM peak,77.09577114427861,80
+B,Overnight,40.0,40
+B,AM peak,96.04395604395602,100
+B,Interpeak,40.0,40
+B,PM peak,99.20561974789915,100
+C,Overnight,40.0,40
+C,AM peak,143.67469879518075,145
+C,Interpeak,40.0,40
+C,PM peak,150.0,150

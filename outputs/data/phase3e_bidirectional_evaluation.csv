@@ -1,0 +1,81 @@
+period,strategy,direction,speed_kmh,common_cycle_s,all_green_departures,progression_fraction
+Overnight,Original,EB,30.0,40,0,0.0
+Overnight,Original,EB,35.0,40,4,0.1
+Overnight,Original,EB,40.0,40,15,0.375
+Overnight,Original,EB,45.0,40,7,0.175
+Overnight,Original,EB,50.0,40,0,0.0
+Overnight,Original,WB,30.0,40,0,0.0
+Overnight,Original,WB,35.0,40,0,0.0
+Overnight,Original,WB,40.0,40,6,0.15
+Overnight,Original,WB,45.0,40,4,0.1
+Overnight,Original,WB,50.0,40,0,0.0
+Overnight,Optimised,EB,30.0,40,0,0.0
+Overnight,Optimised,EB,35.0,40,0,0.0
+Overnight,Optimised,EB,40.0,40,7,0.175
+Overnight,Optimised,EB,45.0,40,15,0.375
+Overnight,Optimised,EB,50.0,40,7,0.175
+Overnight,Optimised,WB,30.0,40,0,0.0
+Overnight,Optimised,WB,35.0,40,5,0.125
+Overnight,Optimised,WB,40.0,40,5,0.125
+Overnight,Optimised,WB,45.0,40,0,0.0
+Overnight,Optimised,WB,50.0,40,0,0.0
+AM peak,Original,EB,30.0,150,68,0.4533333333333333
+AM peak,Original,EB,35.0,150,83,0.5533333333333333
+AM peak,Original,EB,40.0,150,87,0.58
+AM peak,Original,EB,45.0,150,78,0.52
+AM peak,Original,EB,50.0,150,70,0.4666666666666667
+AM peak,Original,WB,30.0,150,3,0.02
+AM peak,Original,WB,35.0,150,10,0.06666666666666667
+AM peak,Original,WB,40.0,150,15,0.1
+AM peak,Original,WB,45.0,150,22,0.14666666666666667
+AM peak,Original,WB,50.0,150,25,0.16666666666666666
+AM peak,Optimised,EB,30.0,150,67,0.44666666666666666
+AM peak,Optimised,EB,35.0,150,83,0.5533333333333333
+AM peak,Optimised,EB,40.0,150,87,0.58
+AM peak,Optimised,EB,45.0,150,79,0.5266666666666666
+AM peak,Optimised,EB,50.0,150,71,0.47333333333333333
+AM peak,Optimised,WB,30.0,150,3,0.02
+AM peak,Optimised,WB,35.0,150,10,0.06666666666666667
+AM peak,Optimised,WB,40.0,150,15,0.1
+AM peak,Optimised,WB,45.0,150,23,0.15333333333333332
+AM peak,Optimised,WB,50.0,150,25,0.16666666666666666
+Interpeak,Original,EB,30.0,40,0,0.0
+Interpeak,Original,EB,35.0,40,6,0.15
+Interpeak,Original,EB,40.0,40,17,0.425
+Interpeak,Original,EB,45.0,40,8,0.2
+Interpeak,Original,EB,50.0,40,0,0.0
+Interpeak,Original,WB,30.0,40,2,0.05
+Interpeak,Original,WB,35.0,40,1,0.025
+Interpeak,Original,WB,40.0,40,7,0.175
+Interpeak,Original,WB,45.0,40,5,0.125
+Interpeak,Original,WB,50.0,40,1,0.025
+Interpeak,Optimised,EB,30.0,40,0,0.0
+Interpeak,Optimised,EB,35.0,40,0,0.0
+Interpeak,Optimised,EB,40.0,40,8,0.2
+Interpeak,Optimised,EB,45.0,40,17,0.425
+Interpeak,Optimised,EB,50.0,40,9,0.225
+Interpeak,Optimised,WB,30.0,40,0,0.0
+Interpeak,Optimised,WB,35.0,40,6,0.15
+Interpeak,Optimised,WB,40.0,40,5,0.125
+Interpeak,Optimised,WB,45.0,40,1,0.025
+Interpeak,Optimised,WB,50.0,40,0,0.0
+PM peak,Original,EB,30.0,150,65,0.43333333333333335
+PM peak,Original,EB,35.0,150,81,0.54
+PM peak,Original,EB,40.0,150,87,0.58
+PM peak,Original,EB,45.0,150,78,0.52
+PM peak,Original,EB,50.0,150,70,0.4666666666666667
+PM peak,Original,WB,30.0,150,3,0.02
+PM peak,Original,WB,35.0,150,10,0.06666666666666667
+PM peak,Original,WB,40.0,150,15,0.1
+PM peak,Original,WB,45.0,150,24,0.16
+PM peak,Original,WB,50.0,150,27,0.18
+PM peak,Optimised,EB,30.0,150,65,0.43333333333333335
+PM peak,Optimised,EB,35.0,150,81,0.54
+PM peak,Optimised,EB,40.0,150,87,0.58
+PM peak,Optimised,EB,45.0,150,78,0.52
+PM peak,Optimised,EB,50.0,150,70,0.4666666666666667
+PM peak,Optimised,WB,30.0,150,3,0.02
+PM peak,Optimised,WB,35.0,150,10,0.06666666666666667
+PM peak,Optimised,WB,40.0,150,15,0.1
+PM peak,Optimised,WB,45.0,150,24,0.16
+PM peak,Optimised,WB,50.0,150,27,0.18

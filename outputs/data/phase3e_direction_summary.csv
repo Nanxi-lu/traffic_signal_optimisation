@@ -1,0 +1,17 @@
+period,strategy,direction,mean_progression,worst_progression,design_speed_progression
+Overnight,Original,EB,0.12999999999999998,0.0,0.375
+Overnight,Original,WB,0.05,0.0,0.15
+Overnight,Optimised,EB,0.145,0.0,0.175
+Overnight,Optimised,WB,0.05,0.0,0.125
+AM peak,Original,EB,0.5146666666666666,0.4533333333333333,0.58
+AM peak,Original,WB,0.1,0.02,0.1
+AM peak,Optimised,EB,0.516,0.44666666666666666,0.58
+AM peak,Optimised,WB,0.10133333333333332,0.02,0.1
+Interpeak,Original,EB,0.155,0.0,0.425
+Interpeak,Original,WB,0.08,0.025,0.175
+Interpeak,Optimised,EB,0.16999999999999998,0.0,0.2
+Interpeak,Optimised,WB,0.06,0.0,0.125
+PM peak,Original,EB,0.508,0.43333333333333335,0.58
+PM peak,Original,WB,0.10533333333333332,0.02,0.1
+PM peak,Optimised,EB,0.508,0.43333333333333335,0.58
+PM peak,Optimised,WB,0.10533333333333332,0.02,0.1

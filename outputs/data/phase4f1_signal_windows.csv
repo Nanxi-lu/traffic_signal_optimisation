@@ -1,0 +1,7 @@
+strategy,junction,cycle_s,ew_green_s,ns_green_s,lost_time_s,interphase_loss_s,ew_offset_s,ns_offset_s
+Phase3A,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+Phase3A,B,150.0,88.0,50.0,12.0,6.0,36.0,130.0
+Phase3A,C,150.0,95.0,43.0,12.0,6.0,81.0,32.0
+Phase4E,A,150.0,87.0,51.0,12.0,6.0,0.0,93.0
+Phase4E,B,150.0,88.0,50.0,12.0,6.0,36.0,130.0
+Phase4E,C,150.0,95.0,43.0,12.0,6.0,70.0,21.0

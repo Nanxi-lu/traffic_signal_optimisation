@@ -1,0 +1,9 @@
+period,strategy,bidirectional_mean,bidirectional_worst,bidirectional_design_40
+Overnight,Original,0.09,0.0,0.2625
+Overnight,Optimised,0.0975,0.0,0.15
+AM peak,Original,0.30733333333333335,0.02,0.33999999999999997
+AM peak,Optimised,0.30866666666666664,0.02,0.33999999999999997
+Interpeak,Original,0.11750000000000001,0.0,0.3
+Interpeak,Optimised,0.11499999999999999,0.0,0.1625
+PM peak,Original,0.3066666666666667,0.02,0.33999999999999997
+PM peak,Optimised,0.3066666666666667,0.02,0.33999999999999997

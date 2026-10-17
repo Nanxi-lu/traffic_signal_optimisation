@@ -1,0 +1,2 @@
+period,cycle_s,A_offset_s,B_offset_s,C_offset_s,training_seeds,fairness_limit_s,training_fairness_pass,training_performance_pass,training_mean_combined_delay_change_s,training_mean_residual_queue_change_veh
+AM peak,150,0,36,70,12,2.0,True,True,-8.943353856622595,-7.458333333333333

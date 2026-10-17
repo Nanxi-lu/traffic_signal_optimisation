@@ -1,0 +1,3 @@
+strategy,corridor_vehicles,corridor_junction_passages,corridor_total_delay_s,corridor_mean_delay_per_vehicle_s,ns_vehicles,ns_junction_passages,ns_total_delay_s,ns_mean_delay_per_vehicle_s,total_junction_passages,total_delay_s,mean_delay_per_junction_passage_s,corridor_queue_at_horizon_veh,ns_queue_at_horizon_veh,total_queue_at_horizon_veh,corridor_waiting_events,ns_waiting_events
+Phase3A,1393,4179,83210.17721109543,59.73451343222931,2546,2546,184018.21556486236,72.2773823899695,6725,267228.3927759578,39.736563981555065,40,36,76,2063,2344
+Phase4E,1393,4179,71140.29536589218,51.06984591952059,2546,2546,181011.3999625691,71.09638647390773,6725,252151.69532846127,37.494675885273054,32,37,69,1951,2336

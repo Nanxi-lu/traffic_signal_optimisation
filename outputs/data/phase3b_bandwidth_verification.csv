@@ -1,0 +1,5 @@
+period,speed_kmh,common_cycle_s,departures_tested,all_green_departures,progression_fraction,travel_time_ab_s,travel_time_ac_s,phase3a_bandwidth_s,phase3a_bandwidth_ratio,fraction_matches_phase3a
+Overnight,40.0,40,40,15,0.375,36.0,81.0,15.0,0.375,True
+AM peak,40.0,150,150,87,0.58,36.0,81.0,87.0,0.58,True
+Interpeak,40.0,40,40,17,0.425,36.0,81.0,17.0,0.425,True
+PM peak,40.0,150,150,87,0.58,36.0,81.0,87.0,0.58,True

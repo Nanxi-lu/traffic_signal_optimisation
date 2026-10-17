@@ -1,0 +1,13 @@
+intersection_id,period,intervals,original_mean_cycle,fixed_cycle,original_warnings,fixed_warnings
+A,Overnight,40,40.0,40,0,0
+A,AM peak,16,56.42027698498848,70,0,0
+A,Interpeak,24,40.0,40,0,0
+A,PM peak,16,59.96319175379662,80,0,0
+B,Overnight,40,40.0,40,0,0
+B,AM peak,16,65.87856704859615,100,0,0
+B,Interpeak,24,40.0,40,0,0
+B,PM peak,16,69.832677862573,100,0,0
+C,Overnight,40,40.0,40,0,0
+C,AM peak,16,85.31242070819323,145,1,1
+C,Interpeak,24,40.33259423503326,40,0,0
+C,PM peak,16,95.81069911301402,150,2,2
