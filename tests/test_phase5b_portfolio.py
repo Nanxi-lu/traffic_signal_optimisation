@@ -360,5 +360,60 @@ def test_site_page_is_self_contained() -> None:
     page = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
     assert "assets/phase4g_results.json" in page
     assert "<script src=" not in page and "<link rel=\"stylesheet\"" not in page
-    assert "—" not in page
+    assert chr(0x2014) not in page
     assert (ROOT / "docs" / ".nojekyll").exists()
+
+
+# Phase 4H follow-up: fairness measured against the original Phase 3A plan.
+def test_phase4h_seeds_are_fresh_and_separate() -> None:
+    from workflows.stage4f_4g_full_junction import (
+        PHASE4G_SEEDS,
+        PHASE4H_HOLDOUT_SEEDS,
+        PHASE4H_SCREEN_SEEDS,
+        PHASE4H_TRAIN_SEEDS,
+        HOLDOUT_SEEDS,
+        TRAIN_SEEDS,
+    )
+
+    earlier = set(PHASE4G_SEEDS) | set(HOLDOUT_SEEDS) | set(TRAIN_SEEDS) | set(range(200, 230))
+    assert not earlier & (set(PHASE4H_TRAIN_SEEDS) | set(PHASE4H_HOLDOUT_SEEDS))
+    assert not set(PHASE4H_TRAIN_SEEDS) & set(PHASE4H_HOLDOUT_SEEDS)
+    assert set(PHASE4H_SCREEN_SEEDS) <= set(PHASE4H_TRAIN_SEEDS)
+
+
+def test_phase4h_selected_plan_and_holdout_results() -> None:
+    selected = pd.read_csv(DATA_DIR / "phase4h_selected_plan.csv").iloc[0]
+    assert (selected["C_ew_green_s"], selected["C_ns_green_s"]) == (87, 51)
+    assert (selected["C_ew_offset_s"], selected["C_ns_offset_s"]) == (79, 22)
+
+    network = pd.read_csv(DATA_DIR / "phase4h_network_summary.csv").set_index(["benchmark", "candidate"])
+    vs3a = network.loc[("Phase3A", "Phase4H")]
+    assert vs3a["mean_delay_change_s"] == pytest.approx(-10.520, abs=5e-4)
+    assert vs3a["ci_upper_s"] < 0 and vs3a["seeds_better"] == 30
+
+    movements = pd.read_csv(DATA_DIR / "phase4h_movement_summary.csv")
+    protected = movements.loc[movements["protected_movement"]].set_index(["benchmark", "candidate", "movement"])
+    for movement in PROTECTED_MOVEMENTS:
+        assert bool(protected.loc[("Phase3A", "Phase4H", movement), "passes_2s_upper"])
+    assert protected.loc[("Phase3A", "Phase4H", "EB"), "mean_delay_change_s"] == pytest.approx(1.298, abs=5e-4)
+    # The original finding replicates on the fresh seeds.
+    assert not bool(protected.loc[("Phase3A", "Integrated", "EB"), "passes_2s_upper"])
+    # The trade-off moves to westbound against Phase 4E.
+    assert not bool(protected.loc[("Phase4E", "Phase4H", "WB"), "passes_2s_upper"])
+
+
+def test_phase4h_integrated_plan_matches_phase4g() -> None:
+    from workflows.stage4f_4g_full_junction import (
+        PHASE4H_INTEGRATED_PAIR,
+        build_period_plans,
+        load_inputs_phase4f2,
+        make_candidate_plan,
+    )
+
+    _, plans_3a, plans_4e = load_inputs_phase4f2()
+    base = build_period_plans(plans_3a, plans_4e, "PM peak")["Phase4E"]
+    c = make_candidate_plan(base, *PHASE4H_INTEGRATED_PAIR)["C"]
+    saved = load_phase4g_data(DATA_DIR)["plans"]
+    row = saved.loc[(saved["period"] == "PM peak") & (saved["strategy"] == "Integrated") & (saved["junction"] == "C")].iloc[0]
+    for key in ("ew_green_s", "ns_green_s", "ew_offset_s", "ns_offset_s"):
+        assert c[key] == row[key]

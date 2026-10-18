@@ -1,4 +1,4 @@
-"""Phases 4F and 4G: full-junction simulation, green-split optimisation and integrated audit.
+"""Phases 4F to 4H: full-junction simulation, green-split optimisation and audits.
 
 Merged from the original phase runner scripts. Each section keeps the
 functions of one phase; run a phase with ``python -m workflows <phase>`` from
@@ -41,6 +41,7 @@ PHASE_DESCRIPTIONS = {
     "phase4f3a": "Phase 4F-3A Junction C green-split sensitivity",
     "phase4f3b": "Phase 4F-3B joint split and offset optimisation",
     "phase4g": "Phase 4G integrated audit",
+    "phase4h": "Phase 4H PM plan with fairness against Phase 3A",
 }
 
 # ============================================================================
@@ -2204,6 +2205,291 @@ def run_phase4g() -> tuple[pd.DataFrame, pd.DataFrame]:
     print("\nPhase 4G completed.")
     return network_summary, movement_summary
 
+# ============================================================================
+# Phase 4H fairness against the original baseline (python -m workflows phase4h)
+# Follow-up to Phase 4G. The Phase 4F-3B search checked movement fairness
+# against Phase 4E, so eastbound delay could accumulate against Phase 3A.
+# Phase 4H repeats the same 35-candidate Junction C search and selection rule
+# for the PM peak, but measures network delay and all four protected
+# movements against Phase 3A. The protocol was fixed before the first run:
+# fresh screening seeds 600-603, training seeds 600-611 and untouched holdout
+# seeds 620-649, none of which were used by any earlier phase.
+# ============================================================================
+
+PHASE4H_PERIOD = "PM peak"
+PHASE4H_SCREEN_SEEDS = range(600, 604)
+PHASE4H_TRAIN_SEEDS = range(600, 612)
+PHASE4H_HOLDOUT_SEEDS = range(620, 650)
+PHASE4H_INTEGRATED_PAIR = (3, 83)
+PHASE4H_SCREENING_PATH = DATA_DIR / "phase4h_screening.csv"
+PHASE4H_TRAINING_PATH = DATA_DIR / "phase4h_training_candidates.csv"
+PHASE4H_TRAINING_FAIRNESS_PATH = DATA_DIR / "phase4h_training_fairness.csv"
+PHASE4H_SELECTED_PATH = DATA_DIR / "phase4h_selected_plan.csv"
+PHASE4H_NETWORK_METRICS_PATH = DATA_DIR / "phase4h_network_metrics.csv"
+PHASE4H_MOVEMENT_METRICS_PATH = DATA_DIR / "phase4h_movement_metrics.csv"
+PHASE4H_NETWORK_SUMMARY_PATH = DATA_DIR / "phase4h_network_summary.csv"
+PHASE4H_MOVEMENT_SUMMARY_PATH = DATA_DIR / "phase4h_movement_summary.csv"
+
+
+def evaluate_fixed_plans(
+    arrival_cache: Mapping[int, Mapping[tuple[str, str], np.ndarray]],
+    junction_plans: Mapping[str, Mapping[str, float]],
+    period: str,
+    name: str,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Evaluate one complete A/B/C plan on every cached arrival replication."""
+
+    movement_frames: list[pd.DataFrame] = []
+    network_records: list[dict[str, object]] = []
+    for seed, arrivals in arrival_cache.items():
+        movements, network = evaluate_network(
+            arrivals=arrivals,
+            junction_plans=junction_plans,
+            strategy=name,
+            period=period,
+            seed=seed,
+            horizon_s=HORIZON_S,
+        )
+        network["C_ns_queue_at_hour"] = int(
+            movements.loc[
+                movements["movement"].isin(["C_N", "C_S"]), "queue_at_hour_veh"
+            ].sum()
+        )
+        movement_frames.append(movements)
+        network_records.append(network)
+    return pd.concat(movement_frames, ignore_index=True), pd.DataFrame(network_records)
+
+
+def _assert_a_unchanged(paired_mov: pd.DataFrame) -> None:
+    """Junction A timing is identical in Phase 3A, 4E and every candidate."""
+
+    unchanged = paired_mov.loc[paired_mov["movement"].isin(["A_N", "A_S"])]
+    if not np.allclose(unchanged["delay_change_s"], 0.0, atol=1e-12):
+        raise AssertionError("Junction A approach delay changed unexpectedly.")
+
+
+def screen_phase4h(
+    cache: Mapping[int, Mapping[tuple[str, str], np.ndarray]],
+    plans_3a: Mapping[str, Mapping[str, float]],
+    plans_4e: Mapping[str, Mapping[str, float]],
+) -> tuple[pd.DataFrame, list[tuple[int, int]]]:
+    """Rank the 35 Phase 4F-3B candidates against Phase 3A on four seeds."""
+
+    base_mov, base_net = evaluate_fixed_plans(cache, plans_3a, PHASE4H_PERIOD, "Phase3A")
+    baseline_pair = _baseline_pair(plans_4e)
+    records: list[dict[str, object]] = []
+    for pair in make_candidate_pairs(baseline_pair[1], int(plans_4e["C"]["cycle_s"])):
+        cand_mov, cand_net = evaluate_plan(cache, plans_4e, PHASE4H_PERIOD, pair, "Candidate")
+        _, paired_net = compare_plans(base_mov, base_net, cand_mov, cand_net)
+        records.append(
+            {
+                "period": PHASE4H_PERIOD,
+                "extra_ns_green_s": pair[0],
+                "C_offset_s": pair[1],
+                "replications": len(paired_net),
+                "screen_delay_change_vs_3a_s": paired_net["delay_change_s"].mean(),
+                "screen_C_ns_queue_change_veh": paired_net["C_ns_queue_change_veh"].mean(),
+            }
+        )
+    ranking = pd.DataFrame(records).sort_values(
+        ["screen_delay_change_vs_3a_s", "screen_C_ns_queue_change_veh", "C_offset_s"],
+        kind="stable",
+    )
+    if len(ranking) != 35:
+        raise ValueError("Expected 35 Phase 4H screening rows.")
+    chosen = {
+        (int(r.extra_ns_green_s), int(r.C_offset_s)) for r in ranking.head(12).itertuples()
+    }
+    for _, group in ranking.groupby("extra_ns_green_s", sort=False):
+        chosen.update((int(r.extra_ns_green_s), int(r.C_offset_s)) for r in group.head(2).itertuples())
+    chosen.add(baseline_pair)
+    return ranking.reset_index(drop=True), sorted(chosen)
+
+
+def train_phase4h(
+    cache: Mapping[int, Mapping[tuple[str, str], np.ndarray]],
+    plans_3a: Mapping[str, Mapping[str, float]],
+    plans_4e: Mapping[str, Mapping[str, float]],
+    shortlist: Iterable[tuple[int, int]],
+) -> tuple[dict[str, object] | None, pd.DataFrame, pd.DataFrame]:
+    """Apply the Phase 4F-3B criteria, measured against Phase 3A."""
+
+    base_mov, base_net = evaluate_fixed_plans(cache, plans_3a, PHASE4H_PERIOD, "Phase3A")
+    original_offset = _baseline_pair(plans_4e)[1]
+    cycle = int(plans_4e["C"]["cycle_s"])
+    candidate_records: list[dict[str, object]] = []
+    fairness_frames: list[pd.DataFrame] = []
+    for extra, offset in shortlist:
+        cand_mov, cand_net = evaluate_plan(cache, plans_4e, PHASE4H_PERIOD, (extra, offset), "Candidate")
+        paired_mov, paired_net = compare_plans(base_mov, base_net, cand_mov, cand_net)
+        _assert_a_unchanged(paired_mov)
+        fairness = evaluate_fairness(paired_mov)
+        fairness.insert(0, "period", PHASE4H_PERIOD)
+        fairness.insert(1, "extra_ns_green_s", extra)
+        fairness.insert(2, "C_offset_s", offset)
+        fairness_frames.append(fairness)
+        changes = paired_net["delay_change_s"].to_numpy(dtype=float)
+        low, high = bootstrap_mean_ci(changes)
+        network_pass = bool(changes.mean() <= 1e-12)
+        fairness_pass = bool(fairness["fairness_pass"].all())
+        candidate_records.append(
+            {
+                "period": PHASE4H_PERIOD,
+                "extra_ns_green_s": extra,
+                "C_offset_s": offset,
+                "replications": len(paired_net),
+                "mean_network_delay_change_vs_3a_s": float(changes.mean()),
+                "network_delay_ci_lower_s": low,
+                "network_delay_ci_upper_s": high,
+                "mean_C_ns_queue_change_veh": paired_net["C_ns_queue_change_veh"].mean(),
+                "network_performance_pass": network_pass,
+                "movement_fairness_pass": fairness_pass,
+                "feasible": bool(network_pass and fairness_pass),
+                "offset_distance_s": min(
+                    (offset - original_offset) % cycle, (original_offset - offset) % cycle
+                ),
+            }
+        )
+    candidates = pd.DataFrame(candidate_records)
+    fairness_checks = pd.concat(fairness_frames, ignore_index=True)
+    feasible = candidates.loc[candidates["feasible"]].sort_values(
+        ["mean_network_delay_change_vs_3a_s", "mean_C_ns_queue_change_veh", "offset_distance_s"],
+        kind="stable",
+    )
+    if feasible.empty:
+        return None, candidates, fairness_checks
+    winner = feasible.iloc[0]
+    plan_c = make_candidate_plan(plans_4e, int(winner["extra_ns_green_s"]), float(winner["C_offset_s"]))["C"]
+    selected = {
+        "period": PHASE4H_PERIOD,
+        "extra_ns_green_s": int(winner["extra_ns_green_s"]),
+        "C_ew_offset_s": int(winner["C_offset_s"]),
+        "C_ns_offset_s": plan_c["ns_offset_s"],
+        "C_ew_green_s": plan_c["ew_green_s"],
+        "C_ns_green_s": plan_c["ns_green_s"],
+        "training_mean_network_delay_change_vs_3a_s": winner["mean_network_delay_change_vs_3a_s"],
+        "training_feasible_candidates": int(len(feasible)),
+        "training_candidate_count": int(len(candidates)),
+    }
+    return selected, candidates, fairness_checks
+
+
+def summarise_phase4h(
+    movements: pd.DataFrame, network: pd.DataFrame, comparisons: Iterable[tuple[str, str]]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Paired holdout comparisons for each (benchmark, candidate) pair."""
+
+    network_records: list[dict[str, object]] = []
+    movement_records: list[dict[str, object]] = []
+    for benchmark, candidate in comparisons:
+        paired_mov, paired_net = compare_plans(
+            movements.loc[movements["strategy"] == benchmark],
+            network.loc[network["strategy"] == benchmark],
+            movements.loc[movements["strategy"] == candidate],
+            network.loc[network["strategy"] == candidate],
+        )
+        changes = paired_net["delay_change_s"].to_numpy(dtype=float)
+        low, high = bootstrap_mean_ci(changes)
+        queue = paired_net["queue_change_veh"].to_numpy(dtype=float)
+        q_low, q_high = bootstrap_mean_ci(queue)
+        network_records.append(
+            {
+                "period": PHASE4H_PERIOD,
+                "benchmark": benchmark,
+                "candidate": candidate,
+                "replications": len(paired_net),
+                "benchmark_mean_delay_per_passage_s": paired_net["mean_delay_per_passage_s_base"].mean(),
+                "candidate_mean_delay_per_passage_s": paired_net["mean_delay_per_passage_s_new"].mean(),
+                "mean_delay_change_s": changes.mean(),
+                "ci_lower_s": low,
+                "ci_upper_s": high,
+                "seeds_better": int((changes < 0).sum()),
+                "mean_queue_change_veh": queue.mean(),
+                "queue_ci_lower_veh": q_low,
+                "queue_ci_upper_veh": q_high,
+            }
+        )
+        for movement in ALL_MOVEMENTS:
+            group = paired_mov.loc[paired_mov["movement"] == movement]
+            m_changes = group["delay_change_s"].to_numpy(dtype=float)
+            m_low, m_high = bootstrap_mean_ci(m_changes)
+            movement_records.append(
+                {
+                    "period": PHASE4H_PERIOD,
+                    "benchmark": benchmark,
+                    "candidate": candidate,
+                    "movement": movement,
+                    "protected_movement": movement in PROTECTED_MOVEMENTS,
+                    "replications": len(group),
+                    "benchmark_mean_delay_s": group["mean_delay_per_vehicle_s_base"].mean(),
+                    "candidate_mean_delay_s": group["mean_delay_per_vehicle_s_new"].mean(),
+                    "mean_delay_change_s": m_changes.mean(),
+                    "ci_lower_s": m_low,
+                    "ci_upper_s": m_high,
+                    "passes_2s_upper": bool(m_high <= FAIRNESS_LIMIT_S),
+                }
+            )
+    return pd.DataFrame(network_records), pd.DataFrame(movement_records)
+
+
+def run_phase4h() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Screen, train and holdout-test a PM plan that is fair against Phase 3A."""
+
+    used = set(range(200, 230)) | set(range(300, 312)) | set(range(400, 450)) | set(range(500, 530))
+    if used & (set(PHASE4H_TRAIN_SEEDS) | set(PHASE4H_HOLDOUT_SEEDS)):
+        raise ValueError("Phase 4H seeds must not overlap earlier phases.")
+    if set(PHASE4H_TRAIN_SEEDS) & set(PHASE4H_HOLDOUT_SEEDS):
+        raise ValueError("Phase 4H training and holdout seeds must differ.")
+
+    traffic, plans_3a_table, plans_4e_table = load_inputs_phase4f2()
+    built = build_period_plans(plans_3a_table, plans_4e_table, PHASE4H_PERIOD)
+    plans_3a, plans_4e = built["Phase3A"], built["Phase4E"]
+
+    training_cache = prepare_arrivals(traffic, PHASE4H_PERIOD, PHASE4H_TRAIN_SEEDS)
+    screening_cache = {seed: training_cache[seed] for seed in PHASE4H_SCREEN_SEEDS}
+    ranking, shortlist = screen_phase4h(screening_cache, plans_3a, plans_4e)
+    selected, candidates, fairness = train_phase4h(training_cache, plans_3a, plans_4e, shortlist)
+    ranking.to_csv(PHASE4H_SCREENING_PATH, index=False)
+    candidates.to_csv(PHASE4H_TRAINING_PATH, index=False)
+    fairness.to_csv(PHASE4H_TRAINING_FAIRNESS_PATH, index=False)
+    if selected is None:
+        pd.DataFrame([{"period": PHASE4H_PERIOD, "selected": False}]).to_csv(PHASE4H_SELECTED_PATH, index=False)
+        print("Phase 4H: no candidate met the criteria against Phase 3A.")
+        return pd.DataFrame(), candidates, fairness
+    pd.DataFrame([selected]).to_csv(PHASE4H_SELECTED_PATH, index=False)
+
+    holdout_cache = prepare_arrivals(traffic, PHASE4H_PERIOD, PHASE4H_HOLDOUT_SEEDS)
+    strategies = {
+        "Phase3A": plans_3a,
+        "Phase4E": plans_4e,
+        "Integrated": make_candidate_plan(plans_4e, *PHASE4H_INTEGRATED_PAIR),
+        "Phase4H": make_candidate_plan(plans_4e, selected["extra_ns_green_s"], selected["C_ew_offset_s"]),
+    }
+    movement_frames, network_frames = [], []
+    for name, plans in strategies.items():
+        movements, network = evaluate_fixed_plans(holdout_cache, plans, PHASE4H_PERIOD, name)
+        movement_frames.append(movements)
+        network_frames.append(network)
+    movements = pd.concat(movement_frames, ignore_index=True)
+    network = pd.concat(network_frames, ignore_index=True)
+    movements.to_csv(PHASE4H_MOVEMENT_METRICS_PATH, index=False)
+    network.to_csv(PHASE4H_NETWORK_METRICS_PATH, index=False)
+    network_summary, movement_summary = summarise_phase4h(
+        movements,
+        network,
+        [("Phase3A", "Phase4H"), ("Phase4E", "Phase4H"), ("Phase3A", "Integrated"), ("Integrated", "Phase4H")],
+    )
+    network_summary.to_csv(PHASE4H_NETWORK_SUMMARY_PATH, index=False)
+    movement_summary.to_csv(PHASE4H_MOVEMENT_SUMMARY_PATH, index=False)
+    print("\nPhase 4H selected plan:")
+    print(pd.DataFrame([selected]).to_string(index=False))
+    print("\nPhase 4H holdout network comparison:")
+    print(network_summary.to_string(index=False))
+    print("\nProtected movements:")
+    print(movement_summary.loc[movement_summary["protected_movement"]].to_string(index=False))
+    return network_summary, movement_summary, candidates
+
+
 
 PHASES = {
     "phase4f1": run_phase4f1,
@@ -2211,4 +2497,5 @@ PHASES = {
     "phase4f3a": run_phase4f3a,
     "phase4f3b": run_phase4f3b,
     "phase4g": run_phase4g,
+    "phase4h": run_phase4h,
 }
