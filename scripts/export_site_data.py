@@ -101,6 +101,31 @@ def build_phase4h() -> dict:
     }
 
 
+def build_phase4i() -> dict:
+    """Saved Phase 4I outcome: the AM peak search under the Phase 4H rules."""
+
+    import pandas as pd
+
+    candidates = pd.read_csv(DATA_DIR / "phase4i_training_candidates.csv")
+    fairness = pd.read_csv(DATA_DIR / "phase4i_training_fairness.csv")
+    added_green = candidates["extra_ns_green_s"] > 0
+    eb = fairness.loc[fairness["movement"] == "EB"].merge(
+        candidates[["extra_ns_green_s", "C_offset_s"]], on=["extra_ns_green_s", "C_offset_s"]
+    )
+    return {
+        "candidates": int(len(candidates)),
+        "feasible": int(candidates["feasible"].sum()),
+        "network_gain_range_s": [
+            _r(-candidates["mean_network_delay_change_vs_3a_s"].max(), 1),
+            _r(-candidates["mean_network_delay_change_vs_3a_s"].min(), 1),
+        ],
+        "min_eb_mean_with_added_green_s": _r(
+            eb.loc[eb["extra_ns_green_s"] > 0, "mean_delay_change_s"].min(), 1
+        ),
+        "added_green_candidates": int(added_green.sum()),
+    }
+
+
 def build_site_data() -> dict:
     data = load_phase4g_data(DATA_DIR)
     network, movements, plans = data["network"], data["movements"], data["plans"]
@@ -185,6 +210,7 @@ def build_site_data() -> dict:
     followup = build_phase4h()
     return {
         "phase4h": followup,
+        "phase4i": build_phase4i(),
         "meta": {
             "description": (
                 "Saved Phase 4G audit of a synthetic three-junction corridor. "

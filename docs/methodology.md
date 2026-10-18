@@ -1,6 +1,6 @@
 # Methodology and development record
 
-This document preserves the full Phase 1 to Phase 4H technical record that previously formed
+This document preserves the full Phase 1 to Phase 4I technical record that previously formed
 the main README. The [README](../README.md) now gives a short case-study overview; this page
 is the reference for how every saved output was produced.
 
@@ -15,9 +15,10 @@ comparisons, but no real-world traffic performance improvement is claimed.
 4. [Webster method](#webster-method)
 5. [Phase 4G evidence and the dashboard data layer](#phase-4g-evidence-and-the-dashboard-data-layer)
 6. [Phase 4H: fairness against the original baseline](#phase-4h-fairness-against-the-original-baseline)
-7. [Saved outputs](#outputs)
-8. [Limitations by phase](#limitations-and-next-steps)
-9. [Proposed extensions](#proposed-extensions)
+7. [Phase 4I: the morning peak under the same rules](#phase-4i-the-morning-peak-under-the-same-rules)
+8. [Saved outputs](#outputs)
+9. [Limitations by phase](#limitations-and-next-steps)
+10. [Proposed extensions](#proposed-extensions)
 
 ## Scope
 
@@ -537,6 +538,35 @@ Outputs: `phase4h_screening.csv`, `phase4h_training_candidates.csv`,
 `phase4h_training_fairness.csv`, `phase4h_selected_plan.csv`,
 `phase4h_network_metrics.csv`, `phase4h_movement_metrics.csv`,
 `phase4h_network_summary.csv` and `phase4h_movement_summary.csv` in `outputs/data/`.
+
+## Phase 4I: the morning peak under the same rules
+
+Phase 4G also recorded a marginal AM exceedance against Phase 3A: C-N +0.919 s with an
+upper bound of +2.197 s (the AM Integrated plan is identical to Phase 4E). Phase 4I
+(`python -m workflows phase4i`) applies the Phase 4H protocol to the AM peak unchanged:
+the same 35 Junction C candidates around the Phase 4E AM plan (EW offset 70 s), the same
+screen, shortlist rule and criteria against Phase 3A, and fresh seeds fixed in advance
+(screening 700 to 703, training 700 to 711, holdout 720 to 749). It was run once.
+
+No candidate met the criteria, so no plan was selected and the holdout was not run. All 16
+shortlisted candidates reduced network delay against Phase 3A (by 1.5 to 5.9 s per passage
+on the training seeds), but every one failed at least one protected movement:
+
+- adding 3 to 10 s of NS green at Junction C fixed both Junction C approaches but raised
+  eastbound delay by more than 2 s (training upper bounds +4.3 to +11.7 s), because
+  eastbound is the peak direction in the morning;
+- keeping the Phase 4E split protected eastbound but left a Junction C approach above the
+  limit (Phase 4E itself: C-S upper bound +3.02 s on these seeds).
+
+Within this search space, the morning peak therefore has a genuine trade-off between
+eastbound traffic and the Junction C side roads. The only option that is fair against
+Phase 3A by construction is Phase 3A itself, which gives up the 1.43 s AM network gain.
+Wider searches (for example offsets nearer the Phase 3A value or changes at Junction B)
+would need their own pre-specified protocol and fresh seeds.
+
+Outputs: `phase4i_screening.csv`, `phase4i_training_candidates.csv`,
+`phase4i_training_fairness.csv` and `phase4i_selected_plan.csv` (which records that no
+plan was selected) in `outputs/data/`.
 
 ## Outputs
 

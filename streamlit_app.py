@@ -214,7 +214,8 @@ if not failures.empty:
     elif period == "AM peak" and benchmark == "Phase3A":
         extra = (
             " A marginal miss: the average change is under 1 s, but the top of the interval "
-            "just passes +2 s."
+            "just passes +2 s. Phase 4I searched for a morning timing that removes it and "
+            "found none: extra side-road green costs eastbound drivers more than 2 s."
         )
     st.error(f"{headline} {details}.{extra}", icon="⚠️")
 elif identical:

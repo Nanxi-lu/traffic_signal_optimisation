@@ -213,6 +213,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
         fairness limit I set at the start.</li>
       <li>A follow-up search that checked fairness against the original plan found a timing that saves
         <strong>10.5 seconds</strong> and keeps every direction within the limit.</li>
+      <li>The same search for the morning peak found no such timing, so a small trade-off remains there.</li>
     </ul>
   </section>
 
@@ -244,6 +245,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
         passes when its whole interval stays below +2 s.</p>
     </div>
     <p class="section-intro" id="fixNote"></p>
+    <div class="plainbox" id="amNote"></div>
   </section>
 
   <section id="corridor" aria-labelledby="corridor-h">
@@ -545,6 +547,12 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     $("fixNote").innerHTML = `The trade-off moves rather than disappears: compared with Phase 4E, westbound drivers wait ${wb4e.mean_change.toFixed(1)} s longer.
       But every protected direction now ends up better off, or within 2 seconds, of where it started. Phase 4H gives Junction C's
       side roads ${f.selected.C_ns_green_s} s of green instead of 46 s and keeps the Phase 4E offset.`;
+    const am = DATA.phase4i;
+    $("amNote").innerHTML = `<strong>Morning peak (Phase 4I).</strong> The same search under the same rules found
+      <strong>no</strong> timing that keeps every direction within the limit (${am.feasible} of ${am.candidates} options passed).
+      Extra side-road green at Junction C fixed the side roads but cost eastbound drivers, the busy morning direction,
+      at least ${am.min_eb_mean_with_added_green_s.toFixed(1)} s on average; keeping the green as it was left a side road over the limit.
+      In the morning a small trade-off remains, and the only plan that is fair against the original is the original itself.`;
   }
 
   // ------------------------------------------------------------ explorer
@@ -563,7 +571,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     if (fails.length) {
       let extra = "";
       if (sel.key === "PM peak|Phase3A|Integrated") extra = ' Phase 4H fixes this: see <a href="#fix">The fix</a>.';
-      else if (sel.p === "AM peak" && sel.b === "Phase3A") extra = " A marginal miss: the average change is under 1 s, but the upper end of the interval just passes 2 s.";
+      else if (sel.p === "AM peak" && sel.b === "Phase3A") extra = ' A marginal miss: the average change is under 1 s, but the upper end of the interval just passes 2 s. <a href="#fix">Phase 4I</a> found no timing that removes it.';
       v.className = "verdict fail";
       v.innerHTML = `<strong class="f">⚠ Over the fairness limit</strong> (${label(sel.c)} vs ${label(sel.b)}, ${sel.p}): ` +
         fails.map((m) => `<strong>${m.label}</strong> ${fmt(m.mean_change, 1)} s per car (interval up to ${fmt(m.ci_upper, 1)} s)`).join("; ") + "." + extra;

@@ -17,7 +17,8 @@ for each direction of travel.
 8.6 seconds per junction, but eastbound drivers waited 2.9 seconds longer, breaking the
 2-second fairness limit set at the start. A follow-up search (Phase 4H) that checked
 fairness against the original plan found a timing that saves 10.5 seconds and keeps every
-protected direction within the limit.
+protected direction within the limit. The same search for the morning peak (Phase 4I)
+found no such timing: there, a small trade-off remains.
 
 ---
 
@@ -94,7 +95,7 @@ choice of baseline changes the verdict, because Phase 4E had already added about
 ![Evening peak delay changes by direction](figures/fairness_tradeoff.png)
 
 There is also one marginal miss in the morning peak: Junction C northbound changes by
-+0.92 s on average, but the top of its interval reaches +2.20 s.
++0.92 s on average, but the top of its interval reaches +2.20 s (see Phase 4I below).
 
 ### The fix (Phase 4H)
 
@@ -116,6 +117,15 @@ On the new test runs, compared with Phase 3A:
 
 The trade-off moves rather than disappears. Compared with Phase 4E, westbound drivers wait
 5.4 s longer, but they still come out 2.5 s better off than under the original plan.
+
+### The morning peak (Phase 4I)
+
+The same search, run under the same rules for the morning peak, found **no** Junction C
+timing that keeps every direction within the limit. Giving the side roads more green fixed
+them but cost eastbound drivers, the busy morning direction, at least 4 s; keeping the
+green as it was left a Junction C side road over the limit. So in the morning there is a
+real trade-off. The only plan that is fair against the original by definition is the
+original itself, which gives up a 1.4 s gain.
 
 ---
 
@@ -167,7 +177,7 @@ In the evening peak every junction runs a 150 s cycle. The Integrated plan gives
 6. **Green split.** Junction C's side roads were over capacity in the peaks, so its green split
    and offset were searched together.
 7. **Audits.** Phase 4G froze the three plans and tested them on 30 fresh seeds per period.
-   Phase 4H repeated the Junction C search against the original plan.
+   Phases 4H and 4I repeated the Junction C search against the original plan.
 
 Each result is a mean of 30 paired differences with a 95% bootstrap interval. A direction
 passes when the top of its interval is no more than +2 s per car.
@@ -239,7 +249,7 @@ traffic_signal_optimisation/
 │   ├── stage1_2_timing.py        Phases 1 and 2: demand checks and fixed timing plans
 │   ├── stage3_coordination.py    Phase 3: coordination and offset optimisation
 │   ├── stage4a_4e_corridor.py    Phases 4A to 4E: corridor simulation
-│   └── stage4f_4g_full_junction.py Phases 4F to 4H: full junctions, audits and the fix
+│   └── stage4f_4g_full_junction.py Phases 4F to 4I: full junctions, audits and follow-ups
 ├── scripts/                      Figure and website data builders
 ├── outputs/                      Saved CSV results and research figures for every phase
 ├── figures/                      Figures used in this README
