@@ -1,6 +1,6 @@
 import pandas as pd
 
-from phase2 import EXPECTED_INTERVALS, build_period_summary
+from workflows.stage1_2_timing import EXPECTED_INTERVALS, build_period_summary
 from traffic_signals.demo import calculate_cycle_plan
 from traffic_signals.segmentation import assign_period
 from traffic_signals.synthetic_data import generate_synthetic_data

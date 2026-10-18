@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from phase4b_multi_seed import (
+from workflows.stage4a_4e_corridor import (
     bootstrap_mean_ci,
     generate_arrivals,
     get_signal_strategies,

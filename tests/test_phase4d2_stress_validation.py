@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from phase4b_multi_seed import generate_arrivals
-from phase4d2_stress_validation import (
+from workflows.stage4a_4e_corridor import generate_arrivals
+from workflows.stage4a_4e_corridor import (
     FACTORS,
-    SEEDS,
+    PHASE4D2_SEEDS as SEEDS,
     generate_stress_arrivals,
     summarise_run,
 )

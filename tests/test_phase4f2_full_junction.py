@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from phase4f2_multi_seed_full_junction import PERIOD_HOURS, SEEDS
+from workflows.stage4f_4g_full_junction import PERIOD_HOURS, PHASE4F2_SEEDS as SEEDS
 from traffic_signals.network_evaluation import (
     build_period_plans,
     evaluate_network,

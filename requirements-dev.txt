@@ -1,0 +1,4 @@
+# Full research, figure-generation and test environment.
+-r requirements.txt
+matplotlib>=3.8
+pytest>=8.0

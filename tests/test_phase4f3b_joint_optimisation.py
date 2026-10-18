@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from phase4f3b_joint_optimisation import (
+from workflows.stage4f_4g_full_junction import (
     PROTECTED_MOVEMENTS,
     evaluate_fairness,
     make_candidate_pairs,

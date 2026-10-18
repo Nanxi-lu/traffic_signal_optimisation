@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 
-from phase2_green_splits import (
+from workflows.stage1_2_timing import (
     LOST_TIME_S,
     MIN_GREEN_S,
     build_phase_observations,
     evaluate_green_split_plans,
     select_green_split_plans,
 )
-from phase2_plans import select_fixed_plans
+from workflows.stage1_2_timing import select_fixed_plans
 from traffic_signals.demo import calculate_cycle_plan
 from traffic_signals.synthetic_data import generate_synthetic_data
 

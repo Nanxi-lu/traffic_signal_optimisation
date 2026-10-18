@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from phase3_speed_sensitivity import TEST_SPEEDS_KMH, build_speed_sensitivity
+from workflows.stage3_coordination import TEST_SPEEDS_KMH, build_speed_sensitivity
 from traffic_signals.progression import (
     calculate_travel_times,
     evaluate_departures,

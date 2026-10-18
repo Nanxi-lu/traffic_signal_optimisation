@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from phase4b_multi_seed import generate_arrivals
-from phase4e_four_period_optimisation import (
+from workflows.stage4a_4e_corridor import generate_arrivals
+from workflows.stage4a_4e_corridor import (
     FACTORS,
-    HOLDOUT_SEEDS,
+    PHASE4E_HOLDOUT_SEEDS as HOLDOUT_SEEDS,
     OPTIMISE_PERIODS,
-    PERIODS,
-    TRAIN_SEEDS,
+    PHASE4E_PERIODS as PERIODS,
+    PHASE4E_TRAIN_SEEDS as TRAIN_SEEDS,
     candidate_space,
     prepare_period_arrivals,
 )

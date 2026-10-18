@@ -1,6 +1,6 @@
 import pandas as pd
 
-from phase4d3_robust_fairness import (
+from workflows.stage4a_4e_corridor import (
     FACTORS,
     check_robust_fairness,
     compare_candidates,

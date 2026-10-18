@@ -1,6 +1,6 @@
 import pandas as pd
 
-from phase2_plans import evaluate_fixed_plans, select_fixed_plans
+from workflows.stage1_2_timing import evaluate_fixed_plans, select_fixed_plans
 from traffic_signals.demo import calculate_cycle_plan
 from traffic_signals.synthetic_data import generate_synthetic_data
 

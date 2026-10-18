@@ -1,8 +1,8 @@
 import pandas as pd
 
-from phase4g_integrated_audit import (
-    PERIODS,
-    SEEDS,
+from workflows.stage4f_4g_full_junction import (
+    PHASE4G_PERIODS as PERIODS,
+    PHASE4G_SEEDS as SEEDS,
     build_integrated_plans,
 )
 from traffic_signals.full_junction import is_effective_green
