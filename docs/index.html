@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic Signal Optimisation</title>
+<meta name="description" content="Educational Python project: fixed-time signal coordination on a synthetic three-junction corridor, evaluated with vehicle-level queue simulation, matched experiments and movement fairness checks.">
+<meta property="og:title" content="Traffic Signal Optimisation">
+<meta property="og:description" content="Network gains can hide movement-level losses. A synthetic, simulation-based study of signal coordination and fairness.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f7f7f4;
+  --surface: #ffffff;
+  --panel: #f1f1ed;
+  --ink: #161615;
+  --ink-2: #52514e;
+  --muted: #7d7b75;
+  --grid: #e4e3dd;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --lower: #2a78d6;
+  --higher: #eb6834;
+  --fail: #c93636;
+  --fail-wash: #fbeaea;
+  --pass: #006300;
+  --pass-wash: #e8f4e8;
+  --info-wash: #edf3fc;
+  --na: #b3b1a9;
+  --ew: #2a78d6;
+  --ns: #eb6834;
+  --loss: #d7d5ce;
+  --road: #dcdad3;
+  --road-box: #cfcdc5;
+  --marking: #ffffff;
+  --accent: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0f0f0e;
+    --surface: #171716;
+    --panel: #22221f;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #9c9a93;
+    --grid: #2c2c29;
+    --axis: #4a4944;
+    --border: rgba(255, 255, 255, 0.10);
+    --lower: #5598e7;
+    --higher: #eb6834;
+    --fail: #e66767;
+    --fail-wash: #3a1f1f;
+    --pass: #5fc35f;
+    --pass-wash: #1c2e1c;
+    --info-wash: #1b2533;
+    --na: #6b6a64;
+    --ew: #5598e7;
+    --ns: #eb6834;
+    --loss: #45443f;
+    --road: #34332f;
+    --road-box: #403f3a;
+    --marking: #6b6a64;
+    --accent: #5598e7;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f0f0e;
+  --surface: #171716;
+  --panel: #22221f;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #9c9a93;
+  --grid: #2c2c29;
+  --axis: #4a4944;
+  --border: rgba(255, 255, 255, 0.10);
+  --lower: #5598e7;
+  --higher: #eb6834;
+  --fail: #e66767;
+  --fail-wash: #3a1f1f;
+  --pass: #5fc35f;
+  --pass-wash: #1c2e1c;
+  --info-wash: #1b2533;
+  --na: #6b6a64;
+  --ew: #5598e7;
+  --ns: #eb6834;
+  --loss: #45443f;
+  --road: #34332f;
+  --road-box: #403f3a;
+  --marking: #6b6a64;
+  --accent: #5598e7;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 40px 0 24px; }
+.eyebrow { font-size: 14px; color: var(--ink-2); font-weight: 500; letter-spacing: 0.01em; margin: 0 0 8px; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 10px; letter-spacing: -0.015em; }
+h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+h3 { font-size: 17px; margin: 0 0 6px; }
+.lead { font-size: 18px; color: var(--ink-2); max-width: 760px; margin: 0 0 18px; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  text-decoration: none; font-size: 15px; font-weight: 500;
+}
+.btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.theme-toggle { margin-left: auto; cursor: pointer; font: inherit; }
+.notice {
+  border-left: 4px solid var(--accent); background: var(--info-wash); padding: 12px 16px;
+  border-radius: 4px; margin: 6px 0 0; font-size: 15px; color: var(--ink);
+}
+section { padding: 28px 0; border-top: 1px solid var(--border); }
+.section-intro { color: var(--ink-2); max-width: 780px; margin: 0 0 18px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.tile .label { font-size: 14px; color: var(--ink-2); font-weight: 500; }
+.tile .value { font-size: 30px; font-weight: 700; line-height: 1.2; margin: 4px 0 2px; }
+.tile .sub { font-size: 13.5px; color: var(--ink-2); }
+.value.lower { color: var(--lower); }
+.value.fail { color: var(--fail); }
+.quote {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; font-size: 17px; margin: 8px 0 0;
+}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 14px 0; }
+.card h3 { margin-bottom: 2px; }
+.card .caption { font-size: 13.5px; color: var(--muted); margin: 6px 0 0; }
+.controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 10px 0 14px; }
+.controls label { display: block; font-size: 14px; color: var(--ink-2); margin-bottom: 4px; font-weight: 500; }
+select {
+  width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 15px;
+}
+.verdict { border-radius: 8px; padding: 12px 14px; font-size: 15px; margin: 0 0 6px; }
+.verdict.fail { background: var(--fail-wash); color: var(--ink); border-left: 4px solid var(--fail); }
+.verdict.pass { background: var(--pass-wash); color: var(--ink); border-left: 4px solid var(--pass); }
+.verdict.info { background: var(--info-wash); color: var(--ink); border-left: 4px solid var(--accent); }
+.verdict strong.f { color: var(--fail); }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+th { color: var(--ink-2); font-weight: 600; font-size: 13.5px; }
+th:first-child, td:first-child { text-align: left; }
+td.check-fail { color: var(--fail); font-weight: 700; }
+td.check-pass { color: var(--pass); }
+td.check-na { color: var(--muted); }
+.chart { width: 100%; position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: inherit; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; color: var(--ink-2); margin: 6px 0 0; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.tooltip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); max-width: 260px; opacity: 0; transition: opacity 0.08s;
+}
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+ul.tight { margin: 6px 0 0; padding-left: 20px; }
+ul.tight li { margin: 3px 0; }
+.method dt { font-weight: 600; margin-top: 10px; }
+.method dd { margin: 2px 0 0; color: var(--ink-2); }
+footer { padding: 26px 0 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 640px) {
+  header.hero { padding-top: 26px; }
+  .lead { font-size: 16.5px; }
+  .controls { grid-template-columns: 1fr; }
+  .theme-toggle { margin-left: 0; }
+  .tile .value { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Educational Python project · Synthetic data · Read-only results</p>
+    <h1>Traffic Signal Optimisation</h1>
+    <p class="lead">How fixed-time signal coordination, green allocation and offsets change delay on a
+      synthetic three-junction corridor, evaluated with vehicle-level queue simulation, matched
+      experiments and movement fairness checks.</p>
+    <div class="links">
+      <a class="btn primary" href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Code on GitHub</a>
+      <a class="btn" href="https://github.com/Nanxi-lu/traffic_signal_optimisation/blob/main/docs/methodology.md">Full methodology</a>
+      <a class="btn" href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Related: Liverpool bus panel</a>
+      <button class="btn theme-toggle" id="themeToggle" type="button" aria-label="Switch colour theme">Theme</button>
+    </div>
+    <p class="notice"><strong>Synthetic and experimental.</strong> All traffic demand is generated, the
+      model is not field calibrated, and no timing plan has been deployed. Every number on this page is
+      read from the saved Phase 4G results; nothing here runs a simulation.</p>
+  </header>
+
+  <section id="findings" aria-labelledby="findings-h">
+    <h2 id="findings-h">Main finding</h2>
+    <p class="section-intro">PM peak, Integrated strategy compared with the original coordinated
+      baseline (Phase 3A), across 30 matched arrival seeds.</p>
+    <div class="tiles" id="headlineTiles"></div>
+    <p class="quote"><strong>Network-wide delay reductions do not necessarily imply improvements for every
+      traffic movement.</strong> The integrated PM timing strategy reduced simulated network delay but
+      exceeded the predefined eastbound fairness threshold against the original baseline. Against the
+      fairness-protected Phase 4E plan, the same candidate passes.</p>
+  </section>
+
+  <section id="corridor" aria-labelledby="corridor-h">
+    <h2 id="corridor-h">The synthetic corridor</h2>
+    <p class="section-intro">Three signalised junctions on a hypothetical road. Each junction runs two
+      fixed-time phases: east-west green (EB and WB together), then north-south green.</p>
+    <div class="card">
+      <div class="chart" id="corridorChart" role="img" aria-label="Corridor diagram: junction A at 0 metres, B at 400 metres, C at 900 metres, with eastbound and westbound corridor traffic and north-south approaches at each junction."></div>
+      <p class="caption">EB and WB travel the full corridor at a constant 40 km/h. North-south vehicles are
+        one-junction local trips. Queues are first-in, first-out with unlimited storage and a 2 s discharge headway.</p>
+    </div>
+  </section>
+
+  <section id="explorer" aria-labelledby="explorer-h">
+    <h2 id="explorer-h">Results explorer</h2>
+    <p class="section-intro">Choose a saved comparison. Differences are candidate minus benchmark, paired by
+      seed; negative values mean the candidate produced lower values.</p>
+    <div class="controls">
+      <div><label for="period">Operating period</label><select id="period"></select></div>
+      <div><label for="benchmark">Benchmark</label><select id="benchmark"></select></div>
+      <div><label for="candidate">Candidate</label><select id="candidate"></select></div>
+    </div>
+    <div id="verdict" class="verdict info"></div>
+
+    <div class="card">
+      <h3>Network performance</h3>
+      <div class="table-scroll"><table id="metricTable"></table></div>
+      <p class="caption">95% intervals are percentile bootstrap intervals (4,000 resamples of 30 paired seed
+        differences). Residual queue is measured at the end of the one-hour arrival window.</p>
+    </div>
+
+    <div class="card">
+      <h3>Movement fairness</h3>
+      <div class="chart" id="fairnessChart"></div>
+      <div class="legend">
+        <span style="--c: var(--lower)">Protected, passes</span>
+        <span style="--c: var(--fail)">Protected, fails</span>
+        <span style="--c: var(--na)">Not assessed</span>
+      </div>
+      <div class="table-scroll" style="margin-top:10px"><table id="movementTable"></table></div>
+      <p class="caption">Protected movements (EB, WB, C-N, C-S) pass when the upper end of their 95% interval is
+        no more than +2 s per vehicle. This is an experimental threshold, not an engineering or legal standard,
+        and each interval is individual rather than a simultaneous guarantee. Side-road movements at A and B were
+        never given a criterion.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 id="periodsTitle">Network delay change in every period</h3>
+        <div class="chart" id="periodChart"></div>
+        <p class="caption">Mean change with 95% bootstrap interval, s per junction passage.</p>
+      </div>
+      <div class="card">
+        <h3>Change by matched seed</h3>
+        <div class="chart" id="seedChart"></div>
+        <p class="caption">Network delay change for each of the 30 seeds in the selected period. Blue: candidate
+          lower. Orange: candidate higher. Dashed line: mean.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Signal timings</h3>
+      <div class="chart" id="timingChart"></div>
+      <div class="legend">
+        <span style="--c: var(--ew)">EW effective green</span>
+        <span style="--c: var(--ns)">NS effective green</span>
+        <span style="--c: var(--loss)">6 s interphase lost time</span>
+      </div>
+      <p class="caption">Each window repeats every cycle. A window that passes the end of the cycle continues from
+        0 s. Analytical effective-green windows, not controller displays.</p>
+    </div>
+  </section>
+
+  <section id="method" aria-labelledby="method-h">
+    <h2 id="method-h">How it works</h2>
+    <div class="grid-2">
+      <div class="card method">
+        <dl>
+          <dt>Synthetic demand</dt>
+          <dd>A seeded day of 15-minute counts with AM and PM peaks, split into four operating periods.</dd>
+          <dt>Webster timing</dt>
+          <dd>Critical flow ratios against an assumed 1,800 veh/h saturation flow give a cycle from
+            C = (1.5L + 5) / (1 &minus; Y), with 12 s lost time, bounded to 40 to 150 s.</dd>
+          <dt>Coordination and offsets</dt>
+          <dd>A common cycle per period, then offsets searched for progression and simulated delay under a
+            directional fairness constraint, using separate training and holdout seeds.</dd>
+          <dt>Green allocation</dt>
+          <dd>Junction C's split and offset were searched jointly in the peaks (Phase 4F-3B).</dd>
+          <dt>Paired audit</dt>
+          <dd>Phase 4G froze three strategies and ran each on the same 30 seeds (500 to 529) in four representative
+            hours, pairing results by seed and movement.</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h3>Limitations</h3>
+        <ul class="tight">
+          <li>Synthetic rather than observed traffic counts.</li>
+          <li>Unlimited queue storage, so no spillback or junction blocking.</li>
+          <li>Simplified two-phase control with no actuation or plan transitions.</li>
+          <li>Constant speed and fixed discharge headway.</li>
+          <li>No turning movements, lane groups or pedestrian phases.</li>
+          <li>No field calibration or validation.</li>
+          <li>Four representative hours, not a continuous day.</li>
+          <li>Local searches only; no plan is claimed to be optimal.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="related" aria-labelledby="related-h">
+    <h2 id="related-h">Related project</h2>
+    <p class="section-intro">The <a href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Liverpool bus
+      real-time panel</a> uses GTFS schedules and real-time vehicle location data to measure how Route 10A
+      journeys compare with their timetabled runtimes. It shows when journeys ran late, but its data cannot
+      separate junction delay from other causes. This project looks at one of those causes from the other
+      direction: it simulates how signal timing distributes delay, on a synthetic corridor. It makes no claim
+      about bus performance in Liverpool.</p>
+  </section>
+
+  <footer>
+    <p>Independent educational project by Nanxi Lu. Data: <code>outputs/data/phase4g_*.csv</code>, exported to
+      <code>docs/assets/phase4g_results.json</code> by <code>scripts/export_site_data.py</code>.
+      <a href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Source and tests on GitHub</a>.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = (id) => document.getElementById(id);
+  const tooltip = $("tooltip");
+  let DATA = null;
+
+  // Theme toggle (per-viewer convenience only).
+  const root = document.documentElement;
+  try {
+    const saved = localStorage.getItem("tso-theme");
+    if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
+  } catch (e) { /* storage unavailable */ }
+  $("themeToggle").addEventListener("click", () => {
+    const dark = getComputedStyle(root).colorScheme.includes("dark");
+    const next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("tso-theme", next); } catch (e) { /* ignore */ }
+    renderAll();
+  });
+
+  const css = (name) => getComputedStyle(root).getPropertyValue(name).trim();
+  const fmt = (v, d = 3, sign = true) => (sign && v > 0 ? "+" : "") + v.toFixed(d).replace("-", "−");
+  const label = (s) => DATA.meta.strategy_labels[s];
+
+  function el(tag, attrs, parent) {
+    const node = document.createElementNS(NS, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+  function text(parent, x, y, str, attrs) {
+    const t = el("text", Object.assign({ x, y, fill: css("--ink-2"), "font-size": 12 }, attrs || {}), parent);
+    t.textContent = str;
+    return t;
+  }
+  function svgFor(container, height) {
+    container.innerHTML = "";
+    const width = Math.max(280, container.clientWidth);
+    const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, width, height }, container);
+    return { svg, width };
+  }
+  function scale(d0, d1, r0, r1) {
+    const k = (r1 - r0) / (d1 - d0);
+    return (v) => r0 + (v - d0) * k;
+  }
+  function ticks(min, max, n) {
+    const span = max - min;
+    const step0 = Math.pow(10, Math.floor(Math.log10(span / n)));
+    const err = (span / n) / step0;
+    const step = step0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1);
+    const out = [];
+    for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  function hover(node, html) {
+    node.style.cursor = "default";
+    const show = (ev) => {
+      tooltip.innerHTML = html;
+      tooltip.style.opacity = 1;
+      const x = Math.min(ev.clientX + 14, window.innerWidth - tooltip.offsetWidth - 8);
+      const y = Math.max(8, ev.clientY - tooltip.offsetHeight - 10);
+      tooltip.style.left = x + "px";
+      tooltip.style.top = y + "px";
+    };
+    node.addEventListener("pointermove", show);
+    node.addEventListener("pointerdown", show);
+    node.addEventListener("pointerleave", () => { tooltip.style.opacity = 0; });
+  }
+  function xAxis(svg, sx, values, y, x0, x1, title) {
+    el("line", { x1: x0, x2: x1, y1: y, y2: y, stroke: css("--axis") }, svg);
+    values.forEach((v) => {
+      text(svg, sx(v), y + 16, fmt(v, Number.isInteger(v) ? 0 : 1, false), { "text-anchor": "middle", fill: css("--muted"), "font-size": 11.5 });
+    });
+    if (title) text(svg, (x0 + x1) / 2, y + 36, title, { "text-anchor": "middle", "font-size": 12.5 });
+  }
+
+  // ------------------------------------------------------------ corridor
+  function renderCorridor() {
+    const c = $("corridorChart");
+    const narrow = c.clientWidth < 560;
+    const H = narrow ? 250 : 280;
+    const { svg, width } = svgFor(c, H);
+    const left = narrow ? 52 : 70, right = width - 24;
+    const pos = DATA.meta.junction_positions_m;
+    const sx = scale(-80, 980, left, right);
+    const cy = narrow ? H / 2 + 2 : H / 2 - 10, half = 14, side = narrow ? 62 : 82;
+    el("rect", { x: sx(-80), y: cy - half, width: sx(980) - sx(-80), height: half * 2, fill: css("--road") }, svg);
+    el("line", { x1: sx(-80), x2: sx(980), y1: cy, y2: cy, stroke: css("--marking"), "stroke-dasharray": "8 7", "stroke-width": 1.4 }, svg);
+    for (const j of ["A", "B", "C"]) {
+      const x = sx(pos[j]);
+      el("rect", { x: x - half, y: cy - half - side, width: half * 2, height: (half + side) * 2, fill: css("--road") }, svg);
+      el("rect", { x: x - half, y: cy - half, width: half * 2, height: half * 2, fill: css("--road-box") }, svg);
+      arrow(svg, x - 6, cy - half - side + 6, x - 6, cy - half - 3, css("--ns"));
+      arrow(svg, x + 6, cy + half + side - 6, x + 6, cy + half + 3, css("--ns"));
+      const g = el("g", {}, svg);
+      el("rect", { x: x + half + 8, y: cy - half - 34, width: 11, height: 28, rx: 3, fill: "#111", stroke: css("--axis") }, g);
+      ["#e34948", "#eda100", "#0ca30c"].forEach((col, i) => el("circle", { cx: x + half + 13.5, cy: cy - half - 29 + i * 9, r: 3, fill: col }, g));
+      if (narrow) {
+        text(svg, x, cy - half - side - 26, `Junction ${j}`, { "text-anchor": "middle", fill: css("--ink"), "font-size": 12.5, "font-weight": 600 });
+        text(svg, x, cy - half - side - 11, `${pos[j]} m`, { "text-anchor": "middle", "font-size": 11.5 });
+      } else {
+        text(svg, x, cy - half - side - 12, `Junction ${j} · ${pos[j]} m`, { "text-anchor": "middle", fill: css("--ink"), "font-size": 14, "font-weight": 600 });
+        text(svg, x, cy + half + side + 18, `${j}-S ↓  ${j}-N ↑`, { "text-anchor": "middle", "font-size": 11.5 });
+      }
+    }
+    arrow(svg, sx(-70), cy - 6, sx(970), cy - 6, css("--ew"), 2.6);
+    arrow(svg, sx(970), cy + 6, sx(-70), cy + 6, css("--ew"), 2.6);
+    text(svg, sx(-80) - 6, cy - 2, "EB →", { "text-anchor": "end", fill: css("--ew"), "font-weight": 600, "font-size": 12.5 });
+    text(svg, sx(-80) - 6, cy + 13, "← WB", { "text-anchor": "end", fill: css("--ew"), "font-weight": 600, "font-size": 12.5 });
+    const dy = H - 16;
+    [["A", "B"], ["B", "C"]].forEach(([a, b]) => {
+      el("line", { x1: sx(pos[a]) + 3, x2: sx(pos[b]) - 3, y1: dy - 14, y2: dy - 14, stroke: css("--ink-2") }, svg);
+      [sx(pos[a]), sx(pos[b])].forEach((x) => el("line", { x1: x, x2: x, y1: dy - 19, y2: dy - 9, stroke: css("--ink-2") }, svg));
+      text(svg, (sx(pos[a]) + sx(pos[b])) / 2, dy + 2, `${pos[b] - pos[a]} m`, { "text-anchor": "middle", "font-size": 12.5 });
+    });
+  }
+  function arrow(svg, x1, y1, x2, y2, colour, w) {
+    el("line", { x1, y1, x2, y2, stroke: colour, "stroke-width": w || 2.2 }, svg);
+    const a = Math.atan2(y2 - y1, x2 - x1), s = 8;
+    const p = [[x2, y2], [x2 - s * Math.cos(a - 0.45), y2 - s * Math.sin(a - 0.45)], [x2 - s * Math.cos(a + 0.45), y2 - s * Math.sin(a + 0.45)]];
+    el("polygon", { points: p.map((q) => q.join(",")).join(" "), fill: colour }, svg);
+  }
+
+  // ------------------------------------------------------------ headline
+  function renderHeadline() {
+    const c = DATA.comparisons["PM peak|Phase3A|Integrated"];
+    const e = DATA.comparisons["PM peak|Phase4E|Integrated"];
+    const d = c.metrics.mean_delay_per_passage_s;
+    const q = c.metrics.total_queue_at_hour;
+    const eb = c.movements.find((m) => m.movement === "EB");
+    const eb4e = e.movements.find((m) => m.movement === "EB");
+    const tiles = [
+      ["Network delay change", fmt(d.mean_change, 1) + " s", "lower", `per junction passage; 95% interval ${fmt(d.ci_lower)} to ${fmt(d.ci_upper)} s`],
+      ["Seeds with lower delay", `${d.seeds_lower} / ${d.replications}`, "lower", "matched arrival seeds"],
+      ["Residual queue change", fmt(q.mean_change, 1) + " veh", "lower", "vehicles still queued at the end of the hour"],
+      ["Eastbound delay change", fmt(eb.mean_change, 1) + " s", "fail", `per vehicle; interval ${fmt(eb.ci_lower)} to ${fmt(eb.ci_upper)} s. Fails the +2 s limit (passes vs Phase 4E at ${fmt(eb4e.mean_change)} s)`],
+    ];
+    $("headlineTiles").innerHTML = tiles.map(([l, v, cls, s]) =>
+      `<div class="tile"><div class="label">${l}</div><div class="value ${cls}">${v}</div><div class="sub">${s}</div></div>`).join("");
+  }
+
+  // ------------------------------------------------------------ explorer
+  function current() {
+    const p = $("period").value, b = $("benchmark").value, c = $("candidate").value;
+    return { p, b, c, key: `${p}|${b}|${c}`, comp: DATA.comparisons[`${p}|${b}|${c}`] };
+  }
+  function renderVerdict(sel) {
+    const v = $("verdict");
+    if (!sel.comp) {
+      v.className = "verdict info";
+      v.textContent = `${label(sel.b)} cannot be compared with itself. Choose Phase 3A as the benchmark, or Integrated as the candidate.`;
+      return false;
+    }
+    const fails = sel.comp.movements.filter((m) => m.check === "Fail");
+    if (fails.length) {
+      let extra = "";
+      if (sel.key === "PM peak|Phase3A|Integrated") extra = " Network delay falls, but eastbound delay rises beyond the experimental +2 s limit against the original baseline. The same candidate passes against Phase 4E.";
+      else if (sel.p === "AM peak" && sel.b === "Phase3A") extra = " This is marginal: the mean change is under 1 s and only the upper bound crosses +2 s. The AM Integrated plan is identical to Phase 4E, whose AM offsets were chosen before north-south traffic was modelled.";
+      v.className = "verdict fail";
+      v.innerHTML = `<strong class="f">⚠ Fairness check failed</strong> (${label(sel.c)} vs ${label(sel.b)}, ${sel.p}): ` +
+        fails.map((m) => `<strong>${m.label}</strong> mean ${fmt(m.mean_change)} s/veh, interval ${fmt(m.ci_lower)} to ${fmt(m.ci_upper)} s`).join("; ") + "." + extra;
+    } else if (sel.comp.identical_plans) {
+      v.className = "verdict info";
+      v.textContent = `In the ${sel.p}, ${label(sel.c)} uses exactly the same signal timings as ${label(sel.b)}, so every paired difference is zero by construction.`;
+    } else {
+      v.className = "verdict pass";
+      v.textContent = `✓ All four protected movements pass the +2 s upper-bound check for ${label(sel.c)} vs ${label(sel.b)} in the ${sel.p}.`;
+    }
+    return true;
+  }
+  function renderMetricTable(sel) {
+    const rows = Object.entries(DATA.meta.metrics).map(([k, meta]) => {
+      const m = sel.comp.metrics[k];
+      const d = k === "total_queue_at_hour" ? 2 : 3;
+      return `<tr><td>${meta.label}<br><span style="color:var(--muted);font-size:12.5px">${meta.unit}</span></td>
+        <td>${m.benchmark_mean.toFixed(d)}</td><td>${m.candidate_mean.toFixed(d)}</td>
+        <td><strong>${fmt(m.mean_change, d)}</strong></td><td>${fmt(m.ci_lower, d)} to ${fmt(m.ci_upper, d)}</td>
+        <td>${m.seeds_lower} / ${m.replications}</td></tr>`;
+    }).join("");
+    $("metricTable").innerHTML = `<thead><tr><th>Measure</th><th>${label(sel.b)}</th><th>${label(sel.c)}</th>
+      <th>Change</th><th>95% interval</th><th>Seeds lower</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+  function renderMovementTable(sel) {
+    const cls = { Pass: "check-pass", Fail: "check-fail", "Not assessed": "check-na" };
+    const txt = { Pass: "✓ Pass", Fail: "✗ Fail", "Not assessed": "Not assessed" };
+    const rows = sel.comp.movements.map((m) => `<tr><td>${m.label}${m.protected ? " *" : ""}</td>
+      <td class="${cls[m.check]}">${txt[m.check]}</td><td>${fmt(m.mean_change)}</td>
+      <td>${fmt(m.ci_lower)} to ${fmt(m.ci_upper)}</td><td>${m.benchmark_mean.toFixed(2)}</td><td>${m.candidate_mean.toFixed(2)}</td></tr>`).join("");
+    $("movementTable").innerHTML = `<thead><tr><th>Movement</th><th>+2 s check</th><th>Change (s/veh)</th>
+      <th>95% interval</th><th>${label(sel.b)} (s/veh)</th><th>${label(sel.c)} (s/veh)</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+  function renderFairness(sel) {
+    const ms = sel.comp.movements;
+    const rowH = 30, top = 22, H = top + ms.length * rowH + 44;
+    const { svg, width } = svgFor($("fairnessChart"), H);
+    const left = 54, right = width - 70;
+    let lo = Math.min(...ms.map((m) => m.ci_lower), -1), hi = Math.max(...ms.map((m) => m.ci_upper), 3);
+    lo = Math.floor(lo * 1.05); hi = Math.ceil(hi * 1.15 + 1);
+    const sx = scale(lo, hi, left, right);
+    const tk = ticks(lo, hi, width < 500 ? 4 : 7);
+    tk.forEach((t) => el("line", { x1: sx(t), x2: sx(t), y1: top - 6, y2: top + ms.length * rowH, stroke: css("--grid") }, svg));
+    el("line", { x1: sx(0), x2: sx(0), y1: top - 6, y2: top + ms.length * rowH, stroke: css("--ink-2") }, svg);
+    const lim = DATA.meta.fairness_limit_s;
+    el("line", { x1: sx(lim), x2: sx(lim), y1: top - 10, y2: top + ms.length * rowH, stroke: css("--fail"), "stroke-dasharray": "4 3", "stroke-width": 1.5 }, svg);
+    text(svg, sx(lim) + 4, top - 10, "+2 s limit", { fill: css("--fail"), "font-size": 11.5 });
+    ms.forEach((m, i) => {
+      const y = top + i * rowH + rowH / 2;
+      const colour = m.check === "Fail" ? css("--fail") : m.protected ? css("--lower") : css("--na");
+      const x0 = sx(Math.min(0, m.mean_change)), x1 = sx(Math.max(0, m.mean_change));
+      const bar = el("rect", { x: x0, y: y - 9, width: Math.max(1.5, x1 - x0), height: 18, rx: 3, fill: colour }, svg);
+      el("line", { x1: sx(m.ci_lower), x2: sx(m.ci_upper), y1: y, y2: y, stroke: css("--ink"), "stroke-width": 1.3 }, svg);
+      [m.ci_lower, m.ci_upper].forEach((v) => el("line", { x1: sx(v), x2: sx(v), y1: y - 4, y2: y + 4, stroke: css("--ink"), "stroke-width": 1.3 }, svg));
+      text(svg, left - 8, y + 4, m.label + (m.protected ? " *" : ""), { "text-anchor": "end", fill: css("--ink"), "font-size": 12.5 });
+      text(svg, right + 8, y + 4, fmt(m.mean_change, 2), { fill: m.check === "Fail" ? css("--fail") : css("--ink"), "font-size": 12, "font-weight": m.protected ? 600 : 400 });
+      const hit = el("rect", { x: left, y: y - rowH / 2, width: right - left, height: rowH, fill: "transparent" }, svg);
+      hover(hit, `<strong>${m.label}</strong>${m.protected ? " (protected)" : ""}<br>Change: ${fmt(m.mean_change)} s/veh<br>95% interval: ${fmt(m.ci_lower)} to ${fmt(m.ci_upper)}<br>+2 s check: ${m.check}`);
+      void bar;
+    });
+    xAxis(svg, sx, tk, top + ms.length * rowH, left, right, "Delay change (s per vehicle)");
+  }
+  function renderPeriods(sel) {
+    const metric = "mean_delay_per_passage_s";
+    const rows = DATA.meta.periods.map((p) => [p, DATA.comparisons[`${p}|${sel.b}|${sel.c}`].metrics[metric]]);
+    const rowH = 40, top = 12, H = top + rows.length * rowH + 46;
+    const { svg, width } = svgFor($("periodChart"), H);
+    const left = 86, right = width - 16;
+    let lo = Math.min(...rows.map(([, m]) => m.ci_lower), 0), hi = Math.max(...rows.map(([, m]) => m.ci_upper), 0);
+    const pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
+    const sx = scale(lo, hi, left, right);
+    const tk = ticks(lo, hi, width < 420 ? 4 : 6);
+    tk.forEach((t) => el("line", { x1: sx(t), x2: sx(t), y1: top, y2: top + rows.length * rowH, stroke: css("--grid") }, svg));
+    el("line", { x1: sx(0), x2: sx(0), y1: top, y2: top + rows.length * rowH, stroke: css("--ink-2") }, svg);
+    rows.forEach(([p, m], i) => {
+      const y = top + i * rowH + rowH / 2;
+      const strong = p === sel.p;
+      text(svg, left - 8, y + 4, p, { "text-anchor": "end", fill: strong ? css("--ink") : css("--ink-2"), "font-weight": strong ? 600 : 400, "font-size": 12.5 });
+      el("line", { x1: sx(m.ci_lower), x2: sx(m.ci_upper), y1: y, y2: y, stroke: css("--lower"), "stroke-width": 3, "stroke-linecap": "round" }, svg);
+      el("circle", { cx: sx(m.mean_change), cy: y, r: strong ? 6.5 : 5, fill: css("--lower"), stroke: css("--surface"), "stroke-width": 2 }, svg);
+      const hit = el("rect", { x: left, y: y - rowH / 2, width: right - left, height: rowH, fill: "transparent" }, svg);
+      hover(hit, `<strong>${p}</strong><br>Change: ${fmt(m.mean_change)} s/passage<br>95% interval: ${fmt(m.ci_lower)} to ${fmt(m.ci_upper)}<br>Seeds lower: ${m.seeds_lower}/30`);
+    });
+    xAxis(svg, sx, tk, top + rows.length * rowH, left, right, `${label(sel.c)} minus ${label(sel.b)}`);
+  }
+  function renderSeeds(sel) {
+    const m = sel.comp.metrics.mean_delay_per_passage_s;
+    const vals = m.seed_changes;
+    const H = 240, top = 14, bottom = H - 44;
+    const { svg, width } = svgFor($("seedChart"), H);
+    const left = 44, right = width - 10;
+    let lo = Math.min(0, ...vals.map((v) => v[1])), hi = Math.max(0, ...vals.map((v) => v[1]));
+    if (lo === hi) { lo = -1; hi = 1; }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const sy = scale(lo, hi, bottom, top);
+    const tk = ticks(lo, hi, 5);
+    tk.forEach((t) => {
+      el("line", { x1: left, x2: right, y1: sy(t), y2: sy(t), stroke: css("--grid") }, svg);
+      text(svg, left - 6, sy(t) + 4, fmt(t, Number.isInteger(t) ? 0 : 1, false), { "text-anchor": "end", fill: css("--muted"), "font-size": 11 });
+    });
+    const bw = (right - left) / vals.length;
+    vals.forEach(([seed, c], i) => {
+      const x = left + i * bw + 1;
+      const y0 = sy(Math.max(0, c)), y1 = sy(Math.min(0, c));
+      const colour = c < 0 ? css("--lower") : c > 0 ? css("--higher") : css("--na");
+      el("rect", { x, y: y0, width: Math.max(1, bw - 2), height: Math.max(1, y1 - y0), rx: 2, fill: colour }, svg);
+      const hit = el("rect", { x: left + i * bw, y: top, width: bw, height: bottom - top, fill: "transparent" }, svg);
+      hover(hit, `Seed ${seed}<br>Change: ${fmt(c)} s/passage`);
+    });
+    el("line", { x1: left, x2: right, y1: sy(0), y2: sy(0), stroke: css("--ink-2") }, svg);
+    el("line", { x1: left, x2: right, y1: sy(m.mean_change), y2: sy(m.mean_change), stroke: css("--ink"), "stroke-dasharray": "4 3" }, svg);
+    text(svg, left, bottom + 18, "seed 500", { fill: css("--muted"), "font-size": 11 });
+    text(svg, right, bottom + 18, "seed 529", { "text-anchor": "end", fill: css("--muted"), "font-size": 11 });
+    text(svg, (left + right) / 2, bottom + 36, `${sel.p}: s per junction passage`, { "text-anchor": "middle", "font-size": 12.5 });
+  }
+  function renderTiming(sel) {
+    const strategies = [sel.b, sel.c];
+    const rowH = 30, blockH = 3 * rowH + 34, top = 4;
+    const H = top + strategies.length * blockH + 34;
+    const { svg, width } = svgFor($("timingChart"), H);
+    const left = 34, right = width - 10;
+    const colours = { "EW green": css("--ew"), "NS green": css("--ns"), Interphase: css("--loss") };
+    let cycle = 0;
+    strategies.forEach((s, bi) => {
+      const rows = DATA.plans[sel.p][s];
+      cycle = rows[0].cycle_s;
+      const sx = scale(0, cycle, left, right);
+      const y0 = top + bi * blockH + 22;
+      text(svg, left, y0 - 8, `${label(s)}: ${cycle} s common cycle`, { fill: css("--ink"), "font-weight": 600, "font-size": 13 });
+      rows.forEach((r, ri) => {
+        const y = y0 + ri * rowH;
+        text(svg, left - 8, y + rowH / 2 + 4, r.junction, { "text-anchor": "end", "font-size": 12.5 });
+        r.windows.forEach((w) => {
+          const rect = el("rect", { x: sx(w.start_s) + 0.75, y: y + 4, width: Math.max(1, sx(w.end_s) - sx(w.start_s) - 1.5), height: rowH - 8, rx: 3, fill: colours[w.kind] }, svg);
+          hover(rect, `<strong>Junction ${r.junction}, ${w.kind}</strong><br>Starts ${w.window_start_s} s, lasts ${w.duration_s} s` +
+            (w.wraps ? "<br>Wraps past the cycle boundary" : "") + `<br>Segment ${w.start_s} to ${w.end_s} s`);
+          const segW = sx(w.end_s) - sx(w.start_s);
+          const first = Math.abs(w.start_s - w.window_start_s) < 1e-6;
+          let t = first ? `${w.kind.slice(0, 2)} ${w.duration_s} s from ${w.window_start_s} s` : `${w.kind.slice(0, 2)} continues`;
+          if (t.length * 6.6 + 10 > segW) t = first ? `${w.kind.slice(0, 2)} ${w.duration_s} s` : "";
+          if (t.length * 6.6 + 10 > segW) t = "";
+          if (w.kind !== "Interphase" && t) {
+            text(svg, (sx(w.start_s) + sx(w.end_s)) / 2, y + rowH / 2 + 4, t, { "text-anchor": "middle", fill: "#fff", "font-size": 11.5, "font-weight": 600, "pointer-events": "none" });
+          }
+        });
+      });
+    });
+    const sx = scale(0, cycle, left, right);
+    const axisY = top + strategies.length * blockH;
+    xAxis(svg, sx, ticks(0, cycle, width < 500 ? 4 : 6), axisY, left, right, "Seconds within cycle");
+  }
+
+  function renderExplorer() {
+    const sel = current();
+    if (!renderVerdict(sel)) {
+      ["metricTable", "movementTable"].forEach((id) => { $(id).innerHTML = ""; });
+      ["fairnessChart", "periodChart", "seedChart", "timingChart"].forEach((id) => { $(id).innerHTML = ""; });
+      return;
+    }
+    renderMetricTable(sel);
+    renderMovementTable(sel);
+    renderFairness(sel);
+    renderPeriods(sel);
+    renderSeeds(sel);
+    renderTiming(sel);
+  }
+  function renderAll() {
+    if (!DATA) return;
+    renderCorridor();
+    renderExplorer();
+  }
+
+  function fill(select, values, chosen, labeller) {
+    select.innerHTML = values.map((v) => `<option value="${v}"${v === chosen ? " selected" : ""}>${labeller ? labeller(v) : v}</option>`).join("");
+    select.addEventListener("change", renderExplorer);
+  }
+
+  fetch("assets/phase4g_results.json")
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((json) => {
+      DATA = json;
+      fill($("period"), DATA.meta.periods, "PM peak");
+      fill($("benchmark"), DATA.meta.benchmarks, "Phase3A", label);
+      fill($("candidate"), DATA.meta.candidates, "Integrated", label);
+      renderHeadline();
+      renderAll();
+      let t;
+      window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderAll, 120); });
+    })
+    .catch(() => {
+      $("verdict").className = "verdict fail";
+      $("verdict").textContent = "The saved results file could not be loaded. If you opened this page from disk, serve it with: python -m http.server --directory docs";
+    });
+})();
+</script>
+</body>
+</html>
