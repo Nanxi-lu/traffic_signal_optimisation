@@ -303,7 +303,8 @@ with overview_tab:
                 f"(seeds 620 to 649). Network delay {h['net']:+.2f} s per passage, eastbound "
                 f"{h['eb']:+.2f} s and westbound {h['wb']:+.2f} s per car: every protected "
                 f"direction within the limit. Junction C side roads get {h['ns']:.0f} s of green "
-                f"instead of 46 s.",
+                f"instead of 46 s. A stress test (Phase 4J) found the same result with all traffic "
+                f"20% lower up to 20% higher.",
                 icon="✅",
             )
 

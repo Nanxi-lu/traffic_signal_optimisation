@@ -213,6 +213,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
         fairness limit I set at the start.</li>
       <li>A follow-up search that checked fairness against the original plan found a timing that saves
         <strong>10.5 seconds</strong> and keeps every direction within the limit.</li>
+      <li>That timing still kept every direction within the limit with traffic 20% lower or higher.</li>
       <li>The same search for the morning peak found no such timing, so a small trade-off remains there.</li>
     </ul>
   </section>
@@ -248,8 +249,26 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     <div class="plainbox" id="amNote"></div>
   </section>
 
+  <section id="stress" aria-labelledby="stress-h">
+    <h2 id="stress-h">3. Does the fix hold if traffic changes?</h2>
+    <div class="plainbox">Real traffic is never exactly what a plan was designed for. Phase 4J ran the Phase 4H plan,
+      unchanged, with all traffic 20% lower up to 20% higher, on 30 more simulated rush hours at each level.</div>
+    <div class="card">
+      <h3>Eastbound change in wait per car (s) at each traffic level</h3>
+      <div class="chart" id="stressChart"></div>
+      <div class="legend">
+        <span style="--c: var(--na)">Integrated plan</span>
+        <span style="--c: var(--lower)">Phase 4H plan</span>
+      </div>
+      <div class="table-scroll" style="margin-top:10px"><table id="stressTable"></table></div>
+      <p class="caption">Change against the original plan, with 95% intervals. Each traffic level uses the same 30
+        simulated rush hours for all plans.</p>
+    </div>
+    <p class="section-intro" id="stressNote"></p>
+  </section>
+
   <section id="corridor" aria-labelledby="corridor-h">
-    <h2 id="corridor-h">3. The road</h2>
+    <h2 id="corridor-h">4. The road</h2>
     <p class="section-intro">Three junctions on a made-up main road. At each one the lights alternate: main road
       green, then side roads green.</p>
     <div class="card">
@@ -258,7 +277,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
   </section>
 
   <section id="explorer" aria-labelledby="explorer-h">
-    <h2 id="explorer-h">4. Explore the results</h2>
+    <h2 id="explorer-h">5. Explore the results</h2>
     <div class="plainbox">Pick a time of day and two plans. Bars to the left of zero mean less waiting with the
       candidate plan. Ticks and crosses show whether each protected direction stayed within the 2-second limit.
       These are the Phase 4G results for the original three plans.</div>
@@ -311,7 +330,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
   </section>
 
   <section id="method" aria-labelledby="method-h">
-    <h2 id="method-h">5. How it was built</h2>
+    <h2 id="method-h">6. How it was built</h2>
     <div class="grid-2">
       <div class="card method">
         <dl>
@@ -555,6 +574,51 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
       In the morning a small trade-off remains, and the only plan that is fair against the original is the original itself.`;
   }
 
+
+  // ------------------------------------------------------------ stress test
+  function renderStress() {
+    const rows = DATA.phase4j.rows;
+    const levels = [...new Set(rows.map((r) => r.factor))].sort((a, b) => a - b);
+    const get = (f, c) => rows.find((r) => r.factor === f && r.candidate === c);
+    const H = 250, top = 16, bottom = H - 46;
+    const { svg, width } = svgFor($("stressChart"), H);
+    const left = 44, right = width - 14;
+    const sy = scale(0, 4, bottom, top);
+    const step = (right - left) / levels.length;
+    [0, 1, 2, 3, 4].forEach((t) => {
+      el("line", { x1: left, x2: right, y1: sy(t), y2: sy(t), stroke: css("--grid") }, svg);
+      text(svg, left - 6, sy(t) + 4, `+${t}`, { "text-anchor": "end", fill: css("--muted"), "font-size": 11 });
+    });
+    el("line", { x1: left, x2: right, y1: sy(2), y2: sy(2), stroke: css("--fail"), "stroke-dasharray": "4 3", "stroke-width": 1.5 }, svg);
+    text(svg, right, sy(2) - 5, "2 s limit", { "text-anchor": "end", fill: css("--fail"), "font-size": 11.5 });
+    levels.forEach((f, i) => {
+      const cx = left + step * (i + 0.5);
+      [["Integrated", -9], ["Phase4H", 9]].forEach(([c, dx]) => {
+        const r = get(f, c);
+        const colour = r.all_within_limit ? css("--lower") : (c === "Integrated" ? css("--na") : css("--fail"));
+        const x = cx + dx;
+        el("line", { x1: x, x2: x, y1: sy(r.eb_ci[0]), y2: sy(r.eb_ci[1]), stroke: colour, "stroke-width": 3, "stroke-linecap": "round" }, svg);
+        const dot = el("circle", { cx: x, cy: sy(r.eb_change), r: 5.5, fill: colour, stroke: css("--surface"), "stroke-width": 2 }, svg);
+        hover(dot, `<strong>${c === "Phase4H" ? "Phase 4H" : "Integrated"}, ${Math.round(f * 100)}% traffic</strong><br>Eastbound ${fmt(r.eb_change)} s per car<br>95% interval ${fmt(r.eb_ci[0])} to ${fmt(r.eb_ci[1])}`);
+      });
+      text(svg, cx, bottom + 18, `${Math.round(f * 100)}%`, { "text-anchor": "middle", fill: css("--ink-2"), "font-size": 12 });
+    });
+    el("line", { x1: left, x2: right, y1: bottom, y2: bottom, stroke: css("--axis") }, svg);
+    text(svg, (left + right) / 2, bottom + 38, "Traffic level (100% = design level)", { "text-anchor": "middle", "font-size": 12.5 });
+
+    $("stressTable").innerHTML = `<thead><tr><th>Traffic</th><th>Phase 4H: average wait</th><th>Phase 4H: every direction</th><th>Integrated: eastbound</th></tr></thead><tbody>` +
+      levels.map((f) => {
+        const h = get(f, "Phase4H"), i = get(f, "Integrated");
+        return `<tr><td>${Math.round(f * 100)}%</td><td>${fmt(h.network_change, 1)} s</td>
+          <td class="${h.all_within_limit ? "check-pass" : "check-fail"}">${h.all_within_limit ? "\u2713 within limit" : "\u2717 over"}</td>
+          <td class="${i.eb_ci[1] <= 2 ? "check-pass" : "check-fail"}">${fmt(i.eb_change, 1)} s ${i.eb_ci[1] <= 2 ? "\u2713" : "\u2717 over"}</td></tr>`;
+      }).join("") + "</tbody>";
+    const allPass = levels.every((f) => get(f, "Phase4H").all_within_limit);
+    $("stressNote").textContent = allPass
+      ? "Phase 4H kept every protected direction within the limit at every traffic level, with eastbound steady at about +1.3 s. It also beat the original plan on average wait at every level, by more as traffic got heavier. At 120% the road is heavily overloaded, so the very large savings there are the least realistic numbers on this page."
+      : "Phase 4H did not stay within the limit at every traffic level; see the table.";
+  }
+
   // ------------------------------------------------------------ explorer
   function current() {
     const p = $("period").value, b = $("benchmark").value, c = $("candidate").value;
@@ -749,6 +813,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     if (!DATA) return;
     renderCorridor();
     renderFix();
+    renderStress();
     renderExplorer();
   }
 
@@ -766,6 +831,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
       fill($("candidate"), DATA.meta.candidates, "Integrated", label);
       renderHeadline();
       renderFix();
+      renderStress();
       renderAll();
       let t;
       window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderAll, 120); });

@@ -29,6 +29,9 @@ not the original, so small increases quietly added up.
 • Rerunning the search against the original plan, and testing it on 30 new rush hours,
 found a timing that saves 10.5 seconds with every direction within the limit.
 
+• I then stress-tested it with traffic 20% lower and 20% higher. It stayed within the
+limit at every level.
+
 The lesson for me: an average can hide who pays for an improvement, and which baseline
 you compare against matters as much as the optimisation itself.
 
@@ -55,7 +58,7 @@ On a simulated three-junction road, the best plan cut the evening-peak wait by 8
 per junction, but eastbound drivers waited 2.9 seconds longer, over my 2-second limit. The
 cause: I had checked fairness against an improved plan, not the original. Rerunning the
 search against the original found a timing that saves 10.5 seconds with every direction
-within the limit.
+within the limit, and it held with traffic 20% lower or higher.
 
 An average can hide who pays for a gain.
 
@@ -65,7 +68,7 @@ https://nanxi-lu.github.io/traffic_signal_optimisation/
 
 ## Notes
 
-- Numbers come from `phase4g_*` (8.6 s, 2.9 s, 30/30) and `phase4h_*` (10.5 s) in
-  `outputs/data/`. The 10.5 s is measured on a fresh set of 30 runs (seeds 620 to 649).
+- Numbers come from `phase4g_*` (8.6 s, 2.9 s, 30/30), `phase4h_*` (10.5 s, on fresh seeds
+  620 to 649) and `phase4j_*` (80% to 120% demand, seeds 800 to 829) in `outputs/data/`.
 - "Educational project" and "simulates" carry the context; no further disclaimers needed.
 - Bullets use "•" because LinkedIn does not render Markdown lists.

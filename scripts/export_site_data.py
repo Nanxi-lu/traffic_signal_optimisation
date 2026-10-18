@@ -126,6 +126,32 @@ def build_phase4i() -> dict:
     }
 
 
+def build_phase4j() -> dict:
+    """Saved Phase 4J stress test: Phase 4H and Integrated at 80% to 120% demand."""
+
+    import pandas as pd
+
+    network = pd.read_csv(DATA_DIR / "phase4j_network_summary.csv")
+    movements = pd.read_csv(DATA_DIR / "phase4j_movement_summary.csv")
+    protected = movements.loc[movements["protected_movement"]]
+    rows = []
+    for (factor, candidate), group in protected.groupby(["demand_factor", "candidate"]):
+        net = network.loc[(network["demand_factor"] == factor) & (network["candidate"] == candidate)].iloc[0]
+        eb = group.set_index("movement").loc["EB"]
+        rows.append(
+            {
+                "factor": float(factor),
+                "candidate": candidate,
+                "network_change": _r(net["mean_delay_change_s"]),
+                "network_ci": [_r(net["ci_lower_s"]), _r(net["ci_upper_s"])],
+                "eb_change": _r(eb["mean_delay_change_s"]),
+                "eb_ci": [_r(eb["ci_lower_s"]), _r(eb["ci_upper_s"])],
+                "all_within_limit": bool(group["passes_2s_upper"].all()),
+            }
+        )
+    return {"seeds": [800, 829], "rows": rows}
+
+
 def build_site_data() -> dict:
     data = load_phase4g_data(DATA_DIR)
     network, movements, plans = data["network"], data["movements"], data["plans"]
@@ -211,6 +237,7 @@ def build_site_data() -> dict:
     return {
         "phase4h": followup,
         "phase4i": build_phase4i(),
+        "phase4j": build_phase4j(),
         "meta": {
             "description": (
                 "Saved Phase 4G audit of a synthetic three-junction corridor. "

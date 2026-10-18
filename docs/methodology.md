@@ -1,6 +1,6 @@
 # Methodology and development record
 
-This document preserves the full Phase 1 to Phase 4I technical record that previously formed
+This document preserves the full Phase 1 to Phase 4J technical record that previously formed
 the main README. The [README](../README.md) now gives a short case-study overview; this page
 is the reference for how every saved output was produced.
 
@@ -16,9 +16,10 @@ comparisons, but no real-world traffic performance improvement is claimed.
 5. [Phase 4G evidence and the dashboard data layer](#phase-4g-evidence-and-the-dashboard-data-layer)
 6. [Phase 4H: fairness against the original baseline](#phase-4h-fairness-against-the-original-baseline)
 7. [Phase 4I: the morning peak under the same rules](#phase-4i-the-morning-peak-under-the-same-rules)
-8. [Saved outputs](#outputs)
-9. [Limitations by phase](#limitations-and-next-steps)
-10. [Proposed extensions](#proposed-extensions)
+8. [Phase 4J: demand stress test of the Phase 4H plan](#phase-4j-demand-stress-test-of-the-phase-4h-plan)
+9. [Saved outputs](#outputs)
+10. [Limitations by phase](#limitations-and-next-steps)
+11. [Proposed extensions](#proposed-extensions)
 
 ## Scope
 
@@ -567,6 +568,33 @@ would need their own pre-specified protocol and fresh seeds.
 Outputs: `phase4i_screening.csv`, `phase4i_training_candidates.csv`,
 `phase4i_training_fairness.csv` and `phase4i_selected_plan.csv` (which records that no
 plan was selected) in `outputs/data/`.
+
+## Phase 4J: demand stress test of the Phase 4H plan
+
+Phase 4H was chosen and tested at the demand level of the synthetic PM peak. Phase 4J
+(`python -m workflows phase4j`) checks whether its result depends on that level. Every
+approach's 15-minute counts, and so every Poisson arrival rate, are multiplied by 0.8, 0.9,
+1.0, 1.1 and 1.2. At each factor, Phase 3A, Integrated and the frozen Phase 4H plan are run on
+the same 30 fresh seeds (800 to 829, fixed in advance and unused elsewhere). Nothing is
+re-tuned.
+
+| Demand | Phase 4H network change (s/passage) | Phase 4H EB (s/veh, upper) | All four protected pass | Integrated EB (s/veh, upper) |
+|---|---:|---:|---|---:|
+| 80% | -1.80 (-2.05 to -1.58) | +1.264 (+1.438) | yes | +2.686 (+2.914), fail |
+| 90% | -3.74 (-4.34 to -3.15) | +1.314 (+1.470) | yes | +2.836 (+3.037), fail |
+| 100% | -9.84 (-11.78 to -8.06) | +1.276 (+1.433) | yes | +2.881 (+3.076), fail |
+| 110% | -16.48 (-17.92 to -14.88) | +1.296 (+1.449) | yes | +2.988 (+3.191), fail |
+| 120% | -25.27 (-26.78 to -23.87) | +1.286 (+1.427) | yes | +3.055 (+3.235), fail |
+
+Phase 4H passes all four protected checks at every factor and reduces network delay in all
+30 seeds at every factor. Integrated fails the eastbound check at every factor. At 80% and
+90% demand Integrated has slightly lower network delay than Phase 4H (by 0.47 and 0.11 s per
+passage); from 100% upwards Phase 4H is lower. At 110% and 120% the network is heavily
+oversaturated (Phase 3A averages 94 and 144 s per passage), where unlimited queue storage
+makes the model least realistic, so those magnitudes should be read with care.
+
+Outputs: `phase4j_network_metrics.csv`, `phase4j_movement_metrics.csv`,
+`phase4j_network_summary.csv` and `phase4j_movement_summary.csv` in `outputs/data/`.
 
 ## Outputs
 

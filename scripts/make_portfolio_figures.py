@@ -621,8 +621,8 @@ def make_linkedin_figure(data: dict[str, pd.DataFrame]) -> list[Path]:
     h_gain = -h_net.loc[("Phase3A", "Phase4H"), "mean_delay_change_s"]
     fig.text(
         0.06, 0.112,
-        f"The fix: re-checking fairness against the original plan found a timing that\n"
-        f"saves {h_gain:.1f} s per junction with every direction within the limit.",
+        f"The fix: checking fairness against the original plan found a timing that saves\n"
+        f"{h_gain:.1f} s with every direction within the limit, even with traffic \u00b120%.",
         fontsize=11.5, color=d["ink"], va="top", linespacing=1.4,
     )
     fig.text(
