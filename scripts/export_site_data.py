@@ -53,6 +53,54 @@ def _r(value: float, digits: int = 6) -> float:
     return round(float(value), digits)
 
 
+def build_phase4h() -> dict:
+    """Saved Phase 4H follow-up summaries (fresh holdout seeds 620 to 649)."""
+
+    import pandas as pd
+
+    selected = pd.read_csv(DATA_DIR / "phase4h_selected_plan.csv").iloc[0]
+    network = pd.read_csv(DATA_DIR / "phase4h_network_summary.csv")
+    movements = pd.read_csv(DATA_DIR / "phase4h_movement_summary.csv")
+    return {
+        "seeds": [620, 649],
+        "selected": {
+            "extra_ns_green_s": int(selected["extra_ns_green_s"]),
+            "C_ew_green_s": _r(selected["C_ew_green_s"], 3),
+            "C_ns_green_s": _r(selected["C_ns_green_s"], 3),
+            "C_ew_offset_s": _r(selected["C_ew_offset_s"], 3),
+            "C_ns_offset_s": _r(selected["C_ns_offset_s"], 3),
+        },
+        "network": [
+            {
+                "benchmark": r.benchmark,
+                "candidate": r.candidate,
+                "benchmark_mean": _r(r.benchmark_mean_delay_per_passage_s),
+                "candidate_mean": _r(r.candidate_mean_delay_per_passage_s),
+                "mean_change": _r(r.mean_delay_change_s),
+                "ci_lower": _r(r.ci_lower_s),
+                "ci_upper": _r(r.ci_upper_s),
+                "seeds_lower": int(r.seeds_better),
+                "queue_change": _r(r.mean_queue_change_veh),
+            }
+            for r in network.itertuples()
+        ],
+        "movements": [
+            {
+                "benchmark": r.benchmark,
+                "candidate": r.candidate,
+                "movement": r.movement,
+                "label": MOVEMENT_LABELS[r.movement],
+                "mean_change": _r(r.mean_delay_change_s),
+                "ci_lower": _r(r.ci_lower_s),
+                "ci_upper": _r(r.ci_upper_s),
+                "check": "Pass" if r.passes_2s_upper else "Fail",
+            }
+            for r in movements.itertuples()
+            if r.protected_movement
+        ],
+    }
+
+
 def build_site_data() -> dict:
     data = load_phase4g_data(DATA_DIR)
     network, movements, plans = data["network"], data["movements"], data["plans"]
@@ -134,7 +182,9 @@ def build_site_data() -> dict:
                     ],
                 }
 
+    followup = build_phase4h()
     return {
+        "phase4h": followup,
         "meta": {
             "description": (
                 "Saved Phase 4G audit of a synthetic three-junction corridor. "

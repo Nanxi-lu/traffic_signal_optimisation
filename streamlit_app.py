@@ -133,6 +133,29 @@ except (FileNotFoundError, DashboardDataError, pd.errors.ParserError) as error:
     st.stop()
 
 network = data["network"]
+
+
+@st.cache_data(show_spinner=False)
+def load_phase4h() -> dict[str, float] | None:
+    """Headline Phase 4H follow-up values from the saved summaries, if present."""
+
+    try:
+        net = pd.read_csv(DATA_DIR / "phase4h_network_summary.csv")
+        mov = pd.read_csv(DATA_DIR / "phase4h_movement_summary.csv")
+        plan = pd.read_csv(DATA_DIR / "phase4h_selected_plan.csv").iloc[0]
+    except (FileNotFoundError, pd.errors.ParserError, IndexError):
+        return None
+    pick = mov.loc[(mov["benchmark"] == "Phase3A") & (mov["candidate"] == "Phase4H")].set_index("movement")
+    row = net.loc[(net["benchmark"] == "Phase3A") & (net["candidate"] == "Phase4H")].iloc[0]
+    return {
+        "net": float(row["mean_delay_change_s"]),
+        "eb": float(pick.loc["EB", "mean_delay_change_s"]),
+        "wb": float(pick.loc["WB", "mean_delay_change_s"]),
+        "ns": float(plan["C_ns_green_s"]),
+    }
+
+
+PHASE4H = load_phase4h()
 movements = data["movements"]
 plans = data["plans"]
 
@@ -144,10 +167,8 @@ st.markdown(
     "four representative hours and 30 matched arrival seeds each."
 )
 st.markdown(
-    '<div class="scope-note"><strong>Read-only results explorer.</strong> Selections choose '
-    "which saved experiment is displayed. Nothing here runs a simulation, generates new "
-    "arrivals or optimises a signal plan. All demand is synthetic and the model is not field "
-    "calibrated.</div>",
+    '<div class="scope-note"><strong>Read-only results explorer.</strong> Pick a saved '
+    "comparison below; nothing here reruns the simulation. Traffic is simulated.</div>",
     unsafe_allow_html=True,
 )
 
@@ -181,20 +202,19 @@ if not failures.empty:
         for row in failures.itertuples()
     )
     headline = (
-        f"Fairness check failed: {label(candidate)} vs {label(benchmark)}, {period}."
+        f"Over the fairness limit: {label(candidate)} vs {label(benchmark)}, {period}."
     )
     extra = ""
     if (period, benchmark, candidate) == ("PM peak", "Phase3A", "Integrated"):
         extra = (
-            " Network delay falls, but eastbound delay rises beyond the experimental "
-            "+2-second limit against the original baseline. The same candidate passes "
-            "against Phase 4E (eastbound +1.620 s)."
+            " Network delay falls, but eastbound drivers wait longer than the 2-second limit "
+            "allows. The same plan passes against Phase 4E (+1.620 s). Phase 4H fixes this: "
+            "see the Overview tab."
         )
     elif period == "AM peak" and benchmark == "Phase3A":
         extra = (
-            " This is a marginal exceedance: the mean change is under 1 s and only the upper "
-            "bound crosses +2 s. The AM Integrated plan is identical to Phase 4E, whose AM "
-            "offsets were selected before north-south traffic was modelled."
+            " A marginal miss: the average change is under 1 s, but the top of the interval "
+            "just passes +2 s."
         )
     st.error(f"{headline} {details}.{extra}", icon="⚠️")
 elif identical:
@@ -270,11 +290,21 @@ with overview_tab:
             st.markdown(f"- **{label(strategy)}**: {STRATEGY_DESCRIPTIONS[strategy]}")
     with right:
         st.markdown(
-            "**Main research finding.** In the PM peak the Integrated strategy reduced simulated "
-            "network delay against Phase 3A in all 30 matched seeds, but eastbound delay rose "
-            "beyond the predefined +2-second fairness threshold. Network-wide gains do not "
-            "guarantee gains for every movement."
+            "**Main finding.** In the evening peak the Integrated plan cut network delay in all 30 "
+            "runs, but eastbound drivers waited 2.9 s longer than under the original plan, over "
+            "the 2-second limit. A better average does not mean everyone is better off."
         )
+        if PHASE4H is not None:
+            h = PHASE4H
+            st.info(
+                f"**The fix: Phase 4H.** The same Junction C search, repeated with fairness "
+                f"measured against the original Phase 3A plan and tested on 30 new runs "
+                f"(seeds 620 to 649). Network delay {h['net']:+.2f} s per passage, eastbound "
+                f"{h['eb']:+.2f} s and westbound {h['wb']:+.2f} s per car: every protected "
+                f"direction within the limit. Junction C side roads get {h['ns']:.0f} s of green "
+                f"instead of 46 s.",
+                icon="✅",
+            )
 
 # ------------------------------------------------------------ performance
 with performance_tab:
@@ -585,25 +615,16 @@ the upper end of that movement's interval is no more than +{FAIRNESS_LIMIT_S:.0f
 This threshold is an experimental modelling choice.
         """
     )
-    st.subheader("Major limitations")
+    st.subheader("Limitations")
     st.markdown(
+        f"""
+- The traffic is simulated, not counted on a real road.
+- The model is simplified: no turning traffic, pedestrians or queues backing up into the
+  previous junction.
+- Each period is one representative hour rather than a continuous day.
+
+The full list is in [docs/methodology.md]({REPO_URL}/blob/main/docs/methodology.md#limitations-and-next-steps).
         """
-- Synthetic rather than observed traffic counts.
-- Unlimited queue storage, so no queue spillback or blocking of upstream junctions.
-- Simplified two-phase signal control (EW then NS), with no actuation or plan transitions.
-- Simplified vehicle movement and discharge: constant speed, fixed 2 s headway, no acceleration.
-- No detailed turning movements, lane groups or pedestrian phases.
-- No field calibration or validation.
-- Four independent representative hours rather than a continuous full-day simulation.
-- Local searches only: no plan is claimed to be globally optimal.
-        """
-    )
-    st.subheader("Not in scope")
-    st.markdown(
-        "This app is a research-results explorer, not a traffic signal controller. It cannot "
-        "evaluate new or arbitrary signal plans. A possible future extension, an interactive "
-        "simulator with clearly labelled exploratory results, is described in "
-        f"[docs/methodology.md]({REPO_URL}/blob/main/docs/methodology.md#proposed-extensions)."
     )
     with st.expander("Saved evidence files"):
         for filename in (

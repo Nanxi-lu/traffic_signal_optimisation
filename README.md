@@ -2,24 +2,22 @@
 
 ## Python-Based Traffic Signal Coordination and Network Performance Evaluation
 
-This is an independent Python project investigating how fixed-time traffic signal
-coordination, green allocation and offset optimisation can influence congestion,
-vehicle delay and network performance.
+An independent, educational Python project that asks a simple question: **can retiming
+traffic lights cut congestion without making any direction worse?**
 
-It models a synthetic three-junction corridor and evaluates interventions using
-vehicle-level queue simulation, matched stochastic experiments and directional
-fairness constraints.
+It simulates a three-junction road with made-up traffic, tests several signal timing
+plans on the same 30 random rush hours, and checks both the overall delay and the delay
+for each direction of travel.
 
-> **Synthetic and experimental.** All traffic demand is generated, the model is not
-> field calibrated, and no timing plan here has been deployed. Results describe the
-> behaviour of a simplified simulation, not observed traffic.
+**Website:** [nanxi-lu.github.io/traffic_signal_optimisation](https://nanxi-lu.github.io/traffic_signal_optimisation/)
 
-![Synthetic three-junction corridor](figures/corridor_network.png)
+![The simulated three-junction road](figures/corridor_network.png)
 
-**In one sentence:** in the simulated PM peak, the integrated timing strategy cut mean
-network delay by 8.6 seconds per junction passage against the original coordinated
-baseline, but eastbound delay rose by 2.9 seconds per vehicle, which exceeds the
-project's predefined +2-second fairness threshold.
+**In short:** the best of the original plans cut the average evening-peak wait by
+8.6 seconds per junction, but eastbound drivers waited 2.9 seconds longer, breaking the
+2-second fairness limit set at the start. A follow-up search (Phase 4H) that checked
+fairness against the original plan found a timing that saves 10.5 seconds and keeps every
+protected direction within the limit.
 
 ---
 
@@ -27,10 +25,10 @@ project's predefined +2-second fairness threshold.
 
 - [A. Project overview](#a-project-overview)
 - [B. Main findings](#b-main-findings)
-- [C. Interactive dashboard](#c-interactive-dashboard)
-- [D. Network visualisation](#d-network-visualisation)
+- [C. Interactive results](#c-interactive-results)
+- [D. The road and the timings](#d-the-road-and-the-timings)
 - [E. Methodology](#e-methodology)
-- [F. Results and limitations](#f-results-and-limitations)
+- [F. Limitations](#f-limitations)
 - [G. Reproducibility](#g-reproducibility)
 - [H. Related project](#h-related-project)
 - [Project structure](#project-structure)
@@ -39,212 +37,153 @@ project's predefined +2-second fairness threshold.
 
 ## A. Project overview
 
-**The transport problem.** On a signalised urban corridor, every junction divides
-green time between competing movements. Poorly coordinated junctions make vehicles
-stop repeatedly, lengthen queues and waste capacity. Changing a junction's timing
-moves delay between movements, so improving one direction can make another worse.
+**The problem.** At every signalised junction, green time is shared between competing
+traffic. Give more to one direction and another waits longer. Linking neighbouring
+junctions so cars meet a "green wave" helps one direction, but can cost the other
+direction and the side roads.
 
-**Why signal coordination matters.** When neighbouring junctions share a common cycle
-and their green windows are offset by the travel time between them, a platoon of
-vehicles can pass several junctions with fewer stops (a "green wave"). Offsets that
-suit one direction can penalise the opposite direction and the side roads, so
-coordination is always a trade-off.
+**What the project does.**
 
-**What the model does.**
-
-- Generates a reproducible synthetic day of 15-minute counts for every approach.
-- Calculates Webster fixed-time cycles and green splits, then common-cycle plans.
-- Optimises offsets for progression and then for simulated delay.
-- Simulates individual vehicles through first-in, first-out (FIFO) queues at all three
-  junctions, including competing north-south traffic.
-- Compares strategies on the same 30 random arrival streams and reports paired
-  bootstrap intervals.
-- Checks every protected movement against a predefined fairness threshold.
-
-**Decisions it can help investigate.**
-
-- How much network delay can offset and green-split changes remove in each period?
-- Which movements gain and which lose when the network total improves?
-- Does a fairness verdict depend on which baseline you compare against?
-- Where is junction capacity, rather than coordination, the binding constraint?
+- Builds a day of simulated traffic for three junctions on one road.
+- Sets cycle lengths and green times with Webster's method, then links the junctions.
+- Searches for better offsets and green splits using simulated delay.
+- Simulates individual cars queueing and leaving at each junction.
+- Tests every plan on the same 30 random traffic patterns, so differences come from the
+  lights, not luck.
+- Checks four protected directions against a 2-second fairness limit.
 
 ---
 
 ## B. Main findings
 
-All values come from the saved Phase 4G audit (`outputs/data/phase4g_*.csv`). The audit
-froze three strategies and then simulated each one with the same 30 arrival seeds
-(500 to 529) in four representative hours.
+### The original three plans (Phase 4G)
 
-| Strategy | Definition |
+| Plan | What it is |
 |---|---|
-| **Phase 3A** | Original coordinated baseline: common Webster-based cycle, fixed green splits and design-speed eastbound offsets. |
-| **Phase 4E** | Fairness-protected offsets selected separately for each period. Cycles and green splits unchanged. |
-| **Integrated** | Phase 4E, with only the PM peak Junction C green split and offsets replaced by the Phase 4F-3B joint selection. |
+| **Phase 3A** | The original coordinated plan. |
+| **Phase 4E** | Offsets tuned to cut delay without making either main-road direction much worse. |
+| **Integrated** | Phase 4E plus more side-road green at Junction C in the evening peak. |
 
-### Network delay: Integrated minus Phase 3A
+Change in average wait per junction, Integrated compared with Phase 3A (negative = faster):
 
-Mean delay per junction passage. Negative values mean lower delay with the Integrated
-strategy.
+| Time of day | Phase 3A (s) | Integrated (s) | Change (s) | 95% interval (s) | Runs faster |
+|---|---:|---:|---:|---|---:|
+| Overnight | 6.77 | 6.58 | **-0.19** | -0.23 to -0.14 | 29 / 30 |
+| Morning peak | 33.56 | 32.13 | **-1.43** | -1.56 to -1.30 | 30 / 30 |
+| Interpeak | 6.81 | 6.64 | **-0.17** | -0.19 to -0.14 | 29 / 30 |
+| Evening peak | 57.99 | 49.38 | **-8.61** | -9.98 to -7.28 | 30 / 30 |
 
-| Period | Phase 3A (s) | Integrated (s) | Change (s) | 95% bootstrap interval (s) | Seeds with lower delay | Residual queue change (veh) |
-|---|---:|---:|---:|---|---:|---:|
-| Overnight | 6.77 | 6.58 | **-0.186** | -0.229 to -0.142 | 29 / 30 | +0.43 |
-| AM peak | 33.56 | 32.13 | **-1.434** | -1.560 to -1.300 | 30 / 30 | -5.00 |
-| Interpeak | 6.81 | 6.64 | **-0.166** | -0.186 to -0.144 | 29 / 30 | 0.00 |
-| PM peak | 57.99 | 49.38 | **-8.611** | -9.976 to -7.284 | 30 / 30 | -27.43 |
+![Network delay by plan and time of day](figures/network_performance.png)
 
-In the Overnight, AM peak and Interpeak hours, the Integrated plans are identical to
-Phase 4E. Only the PM peak differs. Against Phase 4E, the PM Integrated strategy
-changes network delay by -7.522 s per passage (95% interval -8.897 to -6.165).
+### The hidden cost
 
-![Network delay by strategy and period](figures/network_performance.png)
+> **A better network average does not mean every driver is better off.**
 
-### The fairness trade-off
+Evening peak, Integrated compared with Phase 3A, change in wait per car:
 
-> **Network-wide delay reductions do not necessarily imply improvements for every
-> traffic movement.** The integrated PM timing strategy reduced simulated network delay
-> but exceeded the predefined eastbound fairness threshold against the original baseline.
-
-PM peak, Integrated minus Phase 3A, mean delay per vehicle for the four protected
-movements:
-
-| Movement | Change (s/veh) | 95% bootstrap interval (s/veh) | +2 s upper-bound check |
+| Direction | Change (s) | 95% interval (s) | Within 2 s limit? |
 |---|---:|---|---|
-| EB (eastbound corridor) | **+2.906** | +2.732 to +3.084 | **Fail** |
-| WB (westbound corridor) | -9.376 | -9.788 to -8.908 | Pass |
-| C-N (northbound at C) | -11.540 | -14.698 to -8.942 | Pass |
-| C-S (southbound at C) | -82.519 | -97.832 to -67.151 | Pass |
+| Eastbound | **+2.91** | +2.73 to +3.08 | **No** |
+| Westbound | -9.38 | -9.79 to -8.91 | Yes |
+| Junction C northbound | -11.54 | -14.70 to -8.94 | Yes |
+| Junction C southbound | -82.52 | -97.83 to -67.15 | Yes |
 
-The **benchmark matters**. Against Phase 4E, the same PM Integrated candidate changes
-eastbound delay by +1.620 s per vehicle (95% interval +1.569 to +1.673) and **passes**.
-It passes against the fairness-protected Phase 4E plan, but not against the original
-Phase 3A baseline, because the Phase 4E offsets had already added some eastbound delay.
+Against Phase 4E the same plan adds only 1.62 s for eastbound drivers and passes. The
+choice of baseline changes the verdict, because Phase 4E had already added about 1.3 s.
 
-![PM peak movement delay changes against the fairness threshold](figures/fairness_tradeoff.png)
+![Evening peak delay changes by direction](figures/fairness_tradeoff.png)
 
-**A second, marginal exceedance.** In the AM peak, the Integrated plan (identical to
-Phase 4E) changes Junction C northbound (C-N) delay by +0.919 s per vehicle against
-Phase 3A. Its upper bound is +2.197 s, just above the +2 s limit. The Phase 4E AM
-offsets were selected before north-south traffic was modelled, so C-N was not part of
-that selection. Every other protected movement passes in every period against both
-benchmarks.
+There is also one marginal miss in the morning peak: Junction C northbound changes by
++0.92 s on average, but the top of its interval reaches +2.20 s.
 
-**How to read the threshold.** A protected movement passes when the upper end of its 95%
-paired bootstrap interval is no more than +2 s per vehicle. The +2 s value is an
-experimental modelling choice, not an engineering or legal standard. The four
-side-road movements at A and B were never given a fairness criterion and are reported as
-"not assessed".
+### The fix (Phase 4H)
+
+The search that produced the Integrated plan checked fairness against Phase 4E, so small
+increases added up. Phase 4H repeated the same search with every option compared with the
+original Phase 3A plan. It chose the plan on fresh simulated traffic (seeds 600 to 611)
+and tested it on 30 more rush hours it had never seen (seeds 620 to 649).
+
+It picked 5 extra seconds of side-road green at Junction C, keeping the Phase 4E offset.
+On the new test runs, compared with Phase 3A:
+
+| | Phase 4H | Integrated (same runs) |
+|---|---:|---:|
+| Average wait per junction | **-10.52 s** (30 / 30 runs faster) | -9.25 s |
+| Eastbound, per car | +1.30 s, within limit | +2.89 s, over limit |
+| Westbound, per car | -2.53 s, within limit | -9.07 s, within limit |
+| Junction C northbound | -13.13 s, within limit | -9.79 s, within limit |
+| Junction C southbound | -115.02 s, within limit | -91.60 s, within limit |
+
+The trade-off moves rather than disappears. Compared with Phase 4E, westbound drivers wait
+5.4 s longer, but they still come out 2.5 s better off than under the original plan.
 
 ---
 
-## C. Interactive dashboard
+## C. Interactive results
 
-**Project website:** [nanxi-lu.github.io/traffic_signal_optimisation](https://nanxi-lu.github.io/traffic_signal_optimisation/)
-is a static, read-only version of the results explorer, hosted on GitHub Pages. It loads
-quickly on a phone and needs no Python. Its data file, `docs/assets/phase4g_results.json`,
-is exported from the saved CSVs by `scripts/export_site_data.py` using the same validated
-functions as the dashboard.
+- **Website** (no install, works on a phone):
+  [nanxi-lu.github.io/traffic_signal_optimisation](https://nanxi-lu.github.io/traffic_signal_optimisation/)
+- **Streamlit dashboard** (run locally):
 
-A read-only Streamlit explorer lets you choose a period, benchmark and candidate and see
-the saved paired results: network, corridor and north-south delay, residual queues,
-seed-level changes, movement fairness and signal timings. Every value is recalculated
-from the committed CSVs. The app never reruns the simulation or optimisation.
+  ```bash
+  python -m pip install -r requirements.txt
+  streamlit run streamlit_app.py
+  ```
 
-**Streamlit app:** not yet deployed. Run it locally:
-
-```bash
-python -m pip install -r requirements.txt
-streamlit run streamlit_app.py
-```
-
-Then open the address Streamlit prints (normally `http://localhost:8501`). The default
-view is the PM peak, Integrated against Phase 3A, with the eastbound fairness failure
-shown at the top of every tab. Deployment notes are in
+Both read the saved results only; they never rerun the simulation. Deployment notes are in
 [docs/deployment.md](docs/deployment.md).
 
 ---
 
-## D. Network visualisation
+## D. The road and the timings
 
 | Item | Value |
 |---|---|
 | Junctions | A at 0 m, B at 400 m, C at 900 m |
-| Corridor movements | EB (A to C) and WB (C to A), constant 40 km/h |
-| Side-road movements | Northbound and southbound approaches at each junction, one-junction local trips |
-| Control | Fixed-time, two phases per junction: EW green, then NS green |
-| Lost time | 12 s per cycle, modelled as two 6 s interphase gaps |
-| Discharge | One vehicle every 2 s from each queue during effective green |
+| Main road | Eastbound and westbound, 40 km/h |
+| Side roads | Northbound and southbound at each junction |
+| Lights | Main road green, then side road green, with a 6 s changeover each way |
+| Queues | One car leaves every 2 s on green |
 
-The PM peak timings use a common 150 s cycle. The Integrated strategy changes only
-Junction C: EW green 89 s, NS green 49 s, EW offset 83 s and NS offset 28 s (Phase 4E
-used 92 s, 46 s, 79 s and 27 s). Because 83 + 89 = 172 s, Junction C's EW green window
-wraps past the end of the cycle and continues from 0 s to 22 s.
+In the evening peak every junction runs a 150 s cycle. The Integrated plan gives Junction C
+89 s of main-road green and 49 s of side-road green (Phase 4E: 92 s and 46 s). Phase 4H uses
+87 s and 51 s.
 
-![PM peak signal timings for the three strategies](figures/signal_timing_pm.png)
+![Evening peak signal timings](figures/signal_timing_pm.png)
 
 ---
 
 ## E. Methodology
 
-The full phase-by-phase record is preserved in
-[docs/methodology.md](docs/methodology.md). In summary:
+1. **Traffic.** A seeded day of 15-minute counts with morning and evening peaks, split into
+   four periods.
+2. **Webster timing.** Flows are compared with an assumed 1,800 cars per hour of green. Webster's
+   formula, `C = (1.5L + 5) / (1 - Y)` with 12 s lost time, sets the cycle (40 to 150 s), and green is
+   shared in proportion to demand.
+3. **Coordination.** Junctions share a common cycle; offsets line up green for 40 km/h traffic.
+4. **Offset search.** Offsets are tuned for simulated delay, with a 2 s limit on how much
+   worse any direction may get, using separate seeds for choosing and testing.
+5. **Simulation.** Cars arrive at random, travel at 40 km/h and queue first in, first out.
+6. **Green split.** Junction C's side roads were over capacity in the peaks, so its green split
+   and offset were searched together.
+7. **Audits.** Phase 4G froze the three plans and tested them on 30 fresh seeds per period.
+   Phase 4H repeated the Junction C search against the original plan.
 
-1. **Demand segmentation.** A seeded synthetic day of 15-minute counts (three junctions,
-   four approaches) with AM and PM commuter peaks is divided into four operating periods:
-   Overnight, AM peak, Interpeak and PM peak.
-2. **Webster timing.** Counts are converted to hourly flows and divided by an assumed
-   1,800 veh/h saturation flow. The critical EW and NS flow ratios give `Y`, and Webster's
-   `C = (1.5L + 5) / (1 - Y)` with `L = 12 s` gives a cycle bounded to 40 to 150 s. Green
-   is allocated in proportion to the critical ratios.
-3. **Coordination.** In each period all junctions share the longest of their independently
-   optimised cycles, and Phase 3A offsets
-   align EW green with 40 km/h eastbound travel times.
-4. **Offset optimisation.** Offsets were then searched for speed robustness, bidirectional
-   progression and finally simulated delay (Phases 3D to 4E). The delay searches used a
-   +2 s directional fairness constraint, with separate training and untouched holdout seeds.
-5. **Queue simulation.** Vehicles arrive by a Poisson process, travel at 40 km/h and join
-   unlimited FIFO queues with 2 s discharge headways. North-south traffic competes for a
-   mutually exclusive NS phase (Phase 4F).
-6. **Green allocation.** Junction C was capacity-constrained in the peaks, so Phase
-   4F-3A tested moving EW green to NS, and Phase 4F-3B jointly searched Junction C's split
-   and offset with training and holdout seeds.
-7. **Fairness evaluation.** Phase 4G froze all strategies and audited them on 30 fresh
-   matched seeds per period, pairing results by seed and movement and checking four
-   protected movements against the +2 s upper-bound rule.
+Each result is a mean of 30 paired differences with a 95% bootstrap interval. A direction
+passes when the top of its interval is no more than +2 s per car.
+
+The full phase-by-phase record is in [docs/methodology.md](docs/methodology.md).
 
 ---
 
-## F. Results and limitations
+## F. Limitations
 
-**Trade-offs.** The largest network gain is in the PM peak, where the revised Junction C
-split gives the heavily delayed north-south approaches more green. That benefit is
-partly paid for by eastbound corridor traffic. Lower simulated delay can also coexist
-with a higher residual queue: overnight, the mean residual queue rose by 0.43 vehicles
-even though delay fell.
+- The traffic is simulated, not counted on a real road.
+- The model is simplified: no turning traffic, pedestrians or queues backing up into the
+  previous junction.
+- Each period is one representative hour rather than a continuous day.
 
-**Statistical uncertainty.** Each interval is a 95% percentile bootstrap interval from
-4,000 resamples of the 30 paired seed differences. The intervals quantify sampling
-variation under the synthetic arrival model only. They are individual intervals, not
-simultaneous guarantees across periods and movements, and they are not evidence of
-real-world performance.
-
-**What these results do not show.** They do not show that any plan has been deployed, that
-the model reflects a real corridor, that every movement benefits, or that any strategy is
-globally optimal. All searches were local.
-
-**Main model limitations.**
-
-- Synthetic rather than observed traffic counts.
-- Unlimited queue storage, so no queue spillback or junction blocking.
-- Simplified two-phase signal control with no actuation or plan transitions.
-- Simplified vehicle movement and discharge (constant speed, fixed headway).
-- No detailed turning movements, lane groups or pedestrian phases.
-- No field calibration or validation.
-- Four representative hours rather than a continuous full-day simulation.
-
-The phase-by-phase limitations are listed in
-[docs/methodology.md](docs/methodology.md#limitations-and-next-steps).
+The results demonstrate the method, not settings for a real road.
 
 ---
 
@@ -262,39 +201,27 @@ python -m pip install -r requirements-dev.txt
 
 | Task | Command |
 |---|---|
-| Run the test suite | `python -m pytest -v` |
+| Run the tests | `python -m pytest -v` |
 | Launch the dashboard | `streamlit run streamlit_app.py` |
-| Rebuild the portfolio figures from saved CSVs | `python scripts/make_portfolio_figures.py` |
-| Rebuild the website data from saved CSVs | `python scripts/export_site_data.py` |
-| Preview the website locally | `python -m http.server --directory docs` |
 | List the research phases | `python -m workflows --list` |
-| Regenerate the Phase 1 synthetic data | `python -m traffic_signals.demo` |
-| Rerun one phase, for example Phase 3A | `python -m workflows phase3a` |
-| Rerun every phase in order (overwrites `outputs/`) | `python -m workflows all` |
-| Rerun the Phase 4G audit (overwrites the saved Phase 4G outputs) | `python -m workflows phase4g` |
+| Rerun one phase, for example Phase 4H | `python -m workflows phase4h` |
+| Rerun everything (overwrites `outputs/`) | `python -m traffic_signals.demo` then `python -m workflows all` |
+| Rebuild the figures | `python scripts/make_portfolio_figures.py` |
+| Rebuild the website data | `python scripts/export_site_data.py` |
+| Preview the website | `python -m http.server --directory docs` |
 
-`requirements.txt` holds only the dashboard runtime packages; `requirements-dev.txt`
-adds matplotlib and pytest for the research scripts and tests. All results needed by the
-dashboard and figures are committed, so neither requires rerunning any experiment. The
-regression tests in `tests/test_phase5b_portfolio.py` pin the headline Phase 4G values
-and check that the dashboard reproduces the saved summary tables exactly.
+All saved results are committed, so the dashboard, website and figures work without
+rerunning anything. The tests pin the headline numbers.
 
 ---
 
 ## H. Related project
 
-[**Liverpool bus real-time panel**](https://nanxi-lu.github.io/liverpool_bus_realtime_panel/)
-([code](https://github.com/Nanxi-lu/liverpool_bus_realtime_panel)) uses GTFS schedules and
-real-time vehicle location data to measure how Route 10A journeys compare with their
-timetabled runtimes. It shows when journeys ran late, but its data cannot separate junction
-delay from other causes such as boarding, roadworks or dispatching.
-
-This project looks at one of those causes from the other direction: it simulates how
-fixed-time signal coordination distributes delay across movements, on a synthetic corridor.
-The two are complementary: one measures observed performance, the other reasons about a
-mechanism in a controlled setting. Both use paired comparisons and report results by time
-period. This project uses no real-time or observed data and makes no claim about bus
-performance in Liverpool or anywhere else.
+My [**Liverpool bus real-time panel**](https://nanxi-lu.github.io/liverpool_bus_realtime_panel/)
+([code](https://github.com/Nanxi-lu/liverpool_bus_realtime_panel)) uses GTFS timetables and
+real-time bus location data to measure how Route 10A journeys compare with their schedules.
+It shows *when* buses lose time but not *why*. This project looks at one possible reason,
+junction delay, in a controlled simulation.
 
 ---
 
@@ -302,31 +229,20 @@ performance in Liverpool or anywhere else.
 
 ```text
 traffic_signal_optimisation/
-├── README.md                     Portfolio overview (this page)
+├── README.md                     This page
 ├── streamlit_app.py              Read-only results dashboard
-├── requirements.txt              Dashboard runtime dependencies
-├── requirements-dev.txt          Research, figure and test dependencies
-├── traffic_signals/              Core library: demand, Webster, coordination,
-│   │                             queue simulation, network evaluation
-│   └── dashboard_data.py         Validated loading, pairing and bootstrap for the dashboard
+├── requirements.txt              Dashboard packages
+├── requirements-dev.txt          Research, figure and test packages
+├── traffic_signals/              Core library: demand, Webster, coordination, simulation
+│   └── dashboard_data.py         Checked loading and paired comparisons for the dashboard
 ├── workflows/                    Research workflow, one module per stage
 │   ├── stage1_2_timing.py        Phases 1 and 2: demand checks and fixed timing plans
 │   ├── stage3_coordination.py    Phase 3: coordination and offset optimisation
-│   ├── stage4a_4e_corridor.py    Phases 4A to 4E: corridor vehicle simulation
-│   └── stage4f_4g_full_junction.py Phases 4F and 4G: full junction and integrated audit
-├── scripts/
-│   ├── make_portfolio_figures.py Builds figures/ from the saved Phase 4G CSVs
-│   └── export_site_data.py       Exports saved comparisons for the GitHub Pages site
-├── outputs/
-│   ├── data/                     Saved CSV results for every phase
-│   └── figures/                  Research figures produced by the phase scripts
-├── figures/                      Portfolio figures used in this README
-├── docs/
-│   ├── index.html                GitHub Pages site (static results explorer)
-│   ├── assets/                   Site data exported from the saved CSVs
-│   ├── methodology.md            Full Phase 1 to Phase 5A technical record
-│   ├── deployment.md             GitHub Pages and Streamlit Community Cloud guide
-│   └── linkedin_post_draft.md    Draft post and recommended image
-├── tests/                        pytest suite, including dashboard regression tests
-└── .streamlit/config.toml        Dashboard theme and server settings
+│   ├── stage4a_4e_corridor.py    Phases 4A to 4E: corridor simulation
+│   └── stage4f_4g_full_junction.py Phases 4F to 4H: full junctions, audits and the fix
+├── scripts/                      Figure and website data builders
+├── outputs/                      Saved CSV results and research figures for every phase
+├── figures/                      Figures used in this README
+├── docs/                         Website (index.html), methodology, deployment, LinkedIn draft
+└── tests/                        pytest suite
 ```

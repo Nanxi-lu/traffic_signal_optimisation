@@ -1,6 +1,6 @@
 # Methodology and development record
 
-This document preserves the full Phase 1 to Phase 5A technical record that previously formed
+This document preserves the full Phase 1 to Phase 4H technical record that previously formed
 the main README. The [README](../README.md) now gives a short case-study overview; this page
 is the reference for how every saved output was produced.
 
@@ -14,9 +14,10 @@ comparisons, but no real-world traffic performance improvement is claimed.
 3. [Data and units](#data-and-units)
 4. [Webster method](#webster-method)
 5. [Phase 4G evidence and the dashboard data layer](#phase-4g-evidence-and-the-dashboard-data-layer)
-6. [Saved outputs](#outputs)
-7. [Limitations by phase](#limitations-and-next-steps)
-8. [Proposed extensions](#proposed-extensions)
+6. [Phase 4H: fairness against the original baseline](#phase-4h-fairness-against-the-original-baseline)
+7. [Saved outputs](#outputs)
+8. [Limitations by phase](#limitations-and-next-steps)
+9. [Proposed extensions](#proposed-extensions)
 
 ## Scope
 
@@ -497,6 +498,45 @@ Phase 3A:
 The AM Integrated plan is identical to Phase 4E. Its offsets were selected in Phase
 4E, before north-south traffic was modelled, so C_N was not a constraint in that
 selection.
+
+## Phase 4H: fairness against the original baseline
+
+Phase 4G showed that the PM Integrated plan passes the eastbound check against Phase 4E
+but fails it against Phase 3A. The cause is the reference used in Phase 4F-3B: its
+fairness constraints compared each candidate with Phase 4E, and Phase 4E had already
+added about 1.3 s of eastbound delay relative to Phase 3A, so the two increases added up.
+
+Phase 4H (`python -m workflows phase4h`) repeats the Phase 4F-3B Junction C search for the
+PM peak with one change: network delay and the four protected movements are measured
+against Phase 3A. Everything else is unchanged: the same 35 split and offset candidates
+around Phase 4E, the same four-seed screen and shortlist rule, the same training criteria
+(network delay must not increase; each protected movement's 95% upper bound at most +2 s)
+and the same selection order. The protocol was fixed before the first run, with fresh
+seeds that no earlier phase used: screening 600 to 603, training 600 to 611 and an
+untouched holdout of 620 to 649. Phase 4H was run once.
+
+Training found 3 feasible candidates among 19 shortlisted. The selected plan adds 5 s of
+NS green at Junction C and keeps the Phase 4E offset (C: EW 87 s, NS 51 s, EW offset 79 s,
+NS offset 22 s). Holdout results against Phase 3A:
+
+| Measure | Phase 4H | Integrated (same seeds) |
+|---|---:|---:|
+| Network delay per passage | -10.520 s (-12.358 to -8.707), 30/30 seeds | -9.251 s (-10.621 to -7.831) |
+| EB per vehicle | +1.298 s (upper +1.454), pass | +2.887 s (upper +3.097), fail |
+| WB per vehicle | -2.531 s (upper -1.299), pass | -9.066 s, pass |
+| C-N per vehicle | -13.130 s, pass | -9.792 s, pass |
+| C-S per vehicle | -115.019 s, pass | -91.598 s, pass |
+
+The Integrated eastbound failure therefore replicates on independent seeds, and Phase 4H
+removes it while reducing network delay further. The trade-off moves to westbound:
+against Phase 4E, Phase 4H adds 5.41 s (upper +6.38 s) of westbound delay, which fails the
++2 s rule relative to Phase 4E, although westbound remains 2.53 s better than Phase 3A.
+Phase 4H covers the PM peak only; the marginal AM C-N exceedance is unchanged.
+
+Outputs: `phase4h_screening.csv`, `phase4h_training_candidates.csv`,
+`phase4h_training_fairness.csv`, `phase4h_selected_plan.csv`,
+`phase4h_network_metrics.csv`, `phase4h_movement_metrics.csv`,
+`phase4h_network_summary.csv` and `phase4h_movement_summary.csv` in `outputs/data/`.
 
 ## Outputs
 

@@ -557,8 +557,6 @@ def make_linkedin_figure(data: dict[str, pd.DataFrame]) -> list[Path]:
     movements = data["movements"]
     delay = network_comparison(network, "PM peak", "Phase3A", "Integrated")
     vs3a = movement_comparison(movements, "PM peak", "Phase3A", "Integrated").set_index("movement")
-    vs4e = movement_comparison(movements, "PM peak", "Phase4E", "Integrated").set_index("movement")
-
     fig = plt.figure(figsize=(8, 10), facecolor=d["surface"])
     fig.text(0.06, 0.962, "Traffic signal optimisation  ·  Python simulation study",
              fontsize=12.5, color=d["ink_2"], weight="medium", va="top")
@@ -566,8 +564,8 @@ def make_linkedin_figure(data: dict[str, pd.DataFrame]) -> list[Path]:
              weight="bold", color=d["ink"], va="top", linespacing=1.12)
     fig.text(
         0.06, 0.822,
-        "Fixed-time signal coordination on a synthetic three-junction\n"
-        "corridor. PM peak, 30 matched arrival seeds per strategy.",
+        "Retiming traffic lights on a simulated three-junction road.\n"
+        "Evening peak, same 30 random rush hours for every plan.",
         fontsize=12.5, color=d["ink_2"], va="top", linespacing=1.4,
     )
     ax_map = fig.add_axes([0.05, 0.58, 0.9, 0.165])
@@ -619,15 +617,17 @@ def make_linkedin_figure(data: dict[str, pd.DataFrame]) -> list[Path]:
     ax.xaxis.grid(True, color=d["grid"], zorder=0)
     for side in ("left", "bottom"):
         ax.spines[side].set_color(d["axis"])
+    h_net = pd.read_csv(DATA_DIR / "phase4h_network_summary.csv").set_index(["benchmark", "candidate"])
+    h_gain = -h_net.loc[("Phase3A", "Phase4H"), "mean_delay_change_s"]
     fig.text(
         0.06, 0.112,
-        f"Against Phase 4E, the eastbound change is {vs4e.loc['EB', 'mean_delay_change_s']:+.1f} s "
-        "and passes.\nThe choice of benchmark changes the fairness verdict.",
+        f"The fix: re-checking fairness against the original plan found a timing that\n"
+        f"saves {h_gain:.1f} s per junction with every direction within the limit.",
         fontsize=11.5, color=d["ink"], va="top", linespacing=1.4,
     )
     fig.text(
         0.06, 0.052,
-        "Synthetic demand, simplified FIFO queues. Not field calibrated or deployed.\n"
+        "Simulated traffic and a simplified queue model.\n"
         "github.com/Nanxi-lu/traffic_signal_optimisation",
         fontsize=10, color=d["muted"], va="top", linespacing=1.45,
     )

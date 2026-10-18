@@ -1,96 +1,71 @@
 # LinkedIn post draft
 
 **Status:** draft, not published.
-**Framing:** an independent educational project. It is presented as learning and method,
-not as a result for a real road.
-**Recommended image:** `figures/linkedin_summary.png` (dark, 1200 × 1500 px, 4:5 portrait,
-readable on mobile).
-**Links:** the GitHub Pages site and the repository. Check the site loads before posting.
+**Image:** `figures/linkedin_summary.png` (1200 × 1500 px, dark).
+**Links:** the website and the repository.
 
 ---
 
 ## Post
 
-I have been working on an educational Python project to understand how traffic signal timing
-shapes congestion, and what it takes to evaluate a timing change fairly.
+Can retiming traffic lights cut congestion without making anyone's journey worse?
 
-The project models a synthetic three-junction corridor. I worked through the main steps a
-traffic engineer would recognise: Webster cycle calculations, common-cycle coordination,
-offsets between junctions, and green-time allocation. I then simulated individual vehicles
-queueing at each junction, with corridor traffic competing against side roads for green time.
+I built an educational Python project to find out. It simulates a road with three
+signalised junctions and tests different signal timings: cycle lengths from Webster's
+method, green waves between junctions, and how green time is split with the side roads.
+Every plan faces the same 30 random rush hours, so any difference comes from the lights.
 
-To compare strategies fairly, every signal plan was tested on the same 30 random traffic
-patterns, so the differences come from the signals rather than luck. Bootstrap intervals show
-how much uncertainty remains.
+What I found in the evening peak:
 
-What the simulated PM peak showed:
+• The best plan cut the average wait by 8.6 seconds at each junction, and was faster in
+all 30 runs.
 
-• The best-performing strategy reduced average network delay by 8.6 seconds per junction
-passage compared with the original coordinated plan, and was lower in all 30 runs.
+• But eastbound drivers waited 2.9 seconds longer, breaking the 2-second fairness limit
+I had set at the start.
 
-• But eastbound traffic was delayed by 2.9 seconds more per vehicle, which breaks the
-+2-second fairness limit I set before the final test.
+• The cause was the baseline. My search had checked fairness against an improved plan,
+not the original, so small increases quietly added up.
 
-• Compared with a different, fairness-protected baseline, the same increase was only 1.6
-seconds and passed. The verdict depended on which baseline I chose.
+• Rerunning the search against the original plan, and testing it on 30 new rush hours,
+found a timing that saves 10.5 seconds with every direction within the limit.
 
-The main thing I learned is that a network-wide average can hide who pays for an improvement.
-Choosing the baseline and the fairness test is an engineering judgement, and it deserves as
-much care as the optimisation itself.
+The lesson for me: an average can hide who pays for an improvement, and which baseline
+you compare against matters as much as the optimisation itself.
 
-This is a learning exercise, not a real-world result. The traffic is synthetic, the queue
-model is simplified, and nothing has been calibrated or deployed.
-
-It also connects to my earlier Liverpool bus project, where I used GTFS schedules and
-real-time vehicle location data to measure how bus journeys compared with their timetables.
-That data showed when buses ran late but could not show why, including how much was junction
-delay. This project was my way of studying one of those mechanisms in a controlled setting.
-
-Interactive results:
-https://nanxi-lu.github.io/traffic_signal_optimisation/
-
-Code and full methodology:
-https://github.com/Nanxi-lu/traffic_signal_optimisation
-
-I would welcome feedback from traffic engineers and network performance colleagues,
-particularly on how fairness between movements is judged in practice.
-
-#TrafficEngineering #TransportPlanning #IntelligentTransportSystems #Python #TransportAnalytics
-
----
-
-## Shorter version (about 120 words)
-
-I built an educational Python project to learn how traffic signal timing affects congestion,
-and how to test a timing change fairly.
-
-On a synthetic three-junction corridor, I simulated individual vehicles and tested each signal
-plan on the same 30 random traffic patterns. In the PM peak, the best strategy cut average
-network delay by 8.6 seconds per junction passage, but eastbound delay rose by 2.9 seconds per
-vehicle, breaking the fairness limit I had set in advance.
-
-The lesson: a network average can hide who pays for the gain.
-
-The data is synthetic and nothing is deployed. It complements my Liverpool bus project, which
-used real-time vehicle data to measure delays this project tries to explain.
+It connects to my Liverpool bus project, where real-time bus location data showed when
+journeys ran late but not why. This project explores one possible reason, junction delay,
+in a controlled setting.
 
 Results: https://nanxi-lu.github.io/traffic_signal_optimisation/
+Code: https://github.com/Nanxi-lu/traffic_signal_optimisation
+
+I'd welcome thoughts from traffic engineers on how fairness between directions is judged
+in practice.
+
+#TrafficEngineering #TransportPlanning #Python #TransportAnalytics
 
 ---
 
-## Notes on the wording
+## Shorter version
 
-- **Numbers:** they match `outputs/data/phase4g_network_summary.csv` and
-  `outputs/data/phase4g_movement_summary.csv`. They are rounded for readability: -8.611 s per
-  passage, EB +2.906 s, EB vs Phase 4E +1.620 s.
-- **"Best-performing strategy"** is the Integrated strategy. It is described in plain words
-  because "Phase 3A" and "Integrated" mean nothing to a general reader.
-- **Real-time data:** it is attributed only to the Liverpool bus project. This project uses
-  no real-time or observed data.
-- **What is left out:** the marginal AM peak C-N exceedance (+0.919 s mean, upper bound
-  +2.197 s), to keep the post short. It is shown on the website and in the README. If asked
-  whether only one movement failed, the accurate answer is two exceedances against Phase 3A:
-  PM eastbound clearly, AM Junction C northbound marginally.
-- **Claims avoided:** the post does not claim deployment, real-world benefit, field calibration,
-  optimality, or that signal timing explains the Liverpool bus delays.
-- **Formatting:** bullets use "•" because LinkedIn does not render Markdown lists.
+I built an educational Python project to see whether retiming traffic lights can cut
+congestion without making any direction worse.
+
+On a simulated three-junction road, the best plan cut the evening-peak wait by 8.6 seconds
+per junction, but eastbound drivers waited 2.9 seconds longer, over my 2-second limit. The
+cause: I had checked fairness against an improved plan, not the original. Rerunning the
+search against the original found a timing that saves 10.5 seconds with every direction
+within the limit.
+
+An average can hide who pays for a gain.
+
+https://nanxi-lu.github.io/traffic_signal_optimisation/
+
+---
+
+## Notes
+
+- Numbers come from `phase4g_*` (8.6 s, 2.9 s, 30/30) and `phase4h_*` (10.5 s) in
+  `outputs/data/`. The 10.5 s is measured on a fresh set of 30 runs (seeds 620 to 649).
+- "Educational project" and "simulates" carry the context; no further disclaimers needed.
+- Bullets use "•" because LinkedIn does not render Markdown lists.

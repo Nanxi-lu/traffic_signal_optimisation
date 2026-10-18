@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Traffic Signal Optimisation</title>
-<meta name="description" content="Educational Python project: fixed-time signal coordination on a synthetic three-junction corridor, evaluated with vehicle-level queue simulation, matched experiments and movement fairness checks.">
+<meta name="description" content="Educational Python project: can retiming traffic lights cut congestion without making any direction worse? A simulation study of a three-junction road.">
 <meta property="og:title" content="Traffic Signal Optimisation">
 <meta property="og:description" content="Network gains can hide movement-level losses. A synthetic, simulation-based study of signal coordination and fairness.">
 <style>
@@ -128,6 +128,14 @@ section { padding: 28px 0; border-top: 1px solid var(--border); }
 .tile .sub { font-size: 13.5px; color: var(--ink-2); }
 .value.lower { color: var(--lower); }
 .value.fail { color: var(--fail); }
+.value.ok { color: var(--ink); }
+.plain { margin: 6px 0 0; padding-left: 22px; font-size: 17.5px; max-width: 820px; }
+.plain li { margin: 6px 0; }
+.t-fail { color: var(--fail); }
+.plainbox {
+  background: var(--panel); border-radius: 10px; padding: 14px 16px; margin: 0 0 14px;
+  font-size: 15.5px; color: var(--ink); max-width: 860px;
+}
 .quote {
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   padding: 16px 18px; font-size: 17px; margin: 8px 0 0;
@@ -184,135 +192,143 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
 <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
 <div class="wrap">
   <header class="hero">
-    <p class="eyebrow">Educational Python project · Synthetic data · Read-only results</p>
+    <p class="eyebrow">Educational Python project · Simulated traffic</p>
     <h1>Traffic Signal Optimisation</h1>
-    <p class="lead">How fixed-time signal coordination, green allocation and offsets change delay on a
-      synthetic three-junction corridor, evaluated with vehicle-level queue simulation, matched
-      experiments and movement fairness checks.</p>
+    <p class="lead">Can retiming traffic lights cut congestion without making any direction worse?
+      This project tests that on a simulated road with three signalised junctions.</p>
     <div class="links">
       <a class="btn primary" href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Code on GitHub</a>
       <a class="btn" href="https://github.com/Nanxi-lu/traffic_signal_optimisation/blob/main/docs/methodology.md">Full methodology</a>
       <a class="btn" href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Related: Liverpool bus panel</a>
       <button class="btn theme-toggle" id="themeToggle" type="button" aria-label="Switch colour theme">Theme</button>
     </div>
-    <p class="notice"><strong>Synthetic and experimental.</strong> All traffic demand is generated, the
-      model is not field calibrated, and no timing plan has been deployed. Every number on this page is
-      read from the saved Phase 4G results; nothing here runs a simulation.</p>
   </header>
 
+  <section id="summary" aria-labelledby="summary-h">
+    <h2 id="summary-h">In plain words</h2>
+    <ul class="plain">
+      <li>I tested three timing plans for the same road on the same 30 simulated evening rush hours.</li>
+      <li>The best plan cut the average wait by <strong>8.6 seconds</strong> at each junction a car passes through.</li>
+      <li>But eastbound drivers waited <strong class="t-fail">2.9 seconds longer</strong>, which broke the 2-second
+        fairness limit I set at the start.</li>
+      <li>A follow-up search that checked fairness against the original plan found a timing that saves
+        <strong>10.5 seconds</strong> and keeps every direction within the limit.</li>
+    </ul>
+  </section>
+
   <section id="findings" aria-labelledby="findings-h">
-    <h2 id="findings-h">Main finding</h2>
-    <p class="section-intro">PM peak, Integrated strategy compared with the original coordinated
-      baseline (Phase 3A), across 30 matched arrival seeds.</p>
+    <h2 id="findings-h">1. The problem: a gain with a hidden cost</h2>
+    <p class="section-intro">Evening peak. The Integrated plan compared with the original plan (Phase 3A).</p>
     <div class="tiles" id="headlineTiles"></div>
-    <p class="quote"><strong>Network-wide delay reductions do not necessarily imply improvements for every
-      traffic movement.</strong> The integrated PM timing strategy reduced simulated network delay but
-      exceeded the predefined eastbound fairness threshold against the original baseline. Against the
-      fairness-protected Phase 4E plan, the same candidate passes.</p>
+    <p class="quote">A better network average does not mean every driver is better off.</p>
+  </section>
+
+  <section id="fix" aria-labelledby="fix-h">
+    <h2 id="fix-h">2. The fix: Phase 4H</h2>
+    <div class="plainbox">
+      <strong>Why it happened.</strong> The search that produced the Integrated plan only checked fairness against
+      an intermediate plan (Phase 4E), which had already added about 1.3 seconds for eastbound drivers. Small
+      increases added up. <strong>What changed.</strong> Phase 4H ran the same search again, but compared every
+      option with the original plan, and was tested on 30 new simulated rush hours it had never seen.
+    </div>
+    <div class="tiles" id="fixTiles"></div>
+    <div class="card">
+      <h3>Corridor directions: before and after the fix</h3>
+      <div class="chart" id="fixChart"></div>
+      <div class="legend">
+        <span style="--c: var(--na)">Integrated plan</span>
+        <span style="--c: var(--lower)">Phase 4H plan</span>
+      </div>
+      <div class="table-scroll" style="margin-top:10px"><table id="fixTable"></table></div>
+      <p class="caption">Change in waiting time per vehicle against the original plan, with 95% intervals. A direction
+        passes when its whole interval stays below +2 s.</p>
+    </div>
+    <p class="section-intro" id="fixNote"></p>
   </section>
 
   <section id="corridor" aria-labelledby="corridor-h">
-    <h2 id="corridor-h">The synthetic corridor</h2>
-    <p class="section-intro">Three signalised junctions on a hypothetical road. Each junction runs two
-      fixed-time phases: east-west green (EB and WB together), then north-south green.</p>
+    <h2 id="corridor-h">3. The road</h2>
+    <p class="section-intro">Three junctions on a made-up main road. At each one the lights alternate: main road
+      green, then side roads green.</p>
     <div class="card">
-      <div class="chart" id="corridorChart" role="img" aria-label="Corridor diagram: junction A at 0 metres, B at 400 metres, C at 900 metres, with eastbound and westbound corridor traffic and north-south approaches at each junction."></div>
-      <p class="caption">EB and WB travel the full corridor at a constant 40 km/h. North-south vehicles are
-        one-junction local trips. Queues are first-in, first-out with unlimited storage and a 2 s discharge headway.</p>
+      <div class="chart" id="corridorChart" role="img" aria-label="Corridor diagram: junction A at 0 metres, B at 400 metres, C at 900 metres, with eastbound and westbound traffic on the main road and side roads at each junction."></div>
     </div>
   </section>
 
   <section id="explorer" aria-labelledby="explorer-h">
-    <h2 id="explorer-h">Results explorer</h2>
-    <p class="section-intro">Choose a saved comparison. Differences are candidate minus benchmark, paired by
-      seed; negative values mean the candidate produced lower values.</p>
+    <h2 id="explorer-h">4. Explore the results</h2>
+    <div class="plainbox">Pick a time of day and two plans. Bars to the left of zero mean less waiting with the
+      candidate plan. Ticks and crosses show whether each protected direction stayed within the 2-second limit.
+      These are the Phase 4G results for the original three plans.</div>
     <div class="controls">
-      <div><label for="period">Operating period</label><select id="period"></select></div>
-      <div><label for="benchmark">Benchmark</label><select id="benchmark"></select></div>
-      <div><label for="candidate">Candidate</label><select id="candidate"></select></div>
+      <div><label for="period">Time of day</label><select id="period"></select></div>
+      <div><label for="benchmark">Compare against</label><select id="benchmark"></select></div>
+      <div><label for="candidate">Candidate plan</label><select id="candidate"></select></div>
     </div>
     <div id="verdict" class="verdict info"></div>
 
     <div class="card">
-      <h3>Network performance</h3>
-      <div class="table-scroll"><table id="metricTable"></table></div>
-      <p class="caption">95% intervals are percentile bootstrap intervals (4,000 resamples of 30 paired seed
-        differences). Residual queue is measured at the end of the one-hour arrival window.</p>
+      <h3>Who gains and who loses</h3>
+      <div class="chart" id="fairnessChart"></div>
+      <div class="legend">
+        <span style="--c: var(--lower)">Protected, within limit</span>
+        <span style="--c: var(--fail)">Protected, over limit</span>
+        <span style="--c: var(--na)">Side roads at A and B (no limit set)</span>
+      </div>
+      <div class="table-scroll" style="margin-top:10px"><table id="movementTable"></table></div>
     </div>
 
     <div class="card">
-      <h3>Movement fairness</h3>
-      <div class="chart" id="fairnessChart"></div>
-      <div class="legend">
-        <span style="--c: var(--lower)">Protected, passes</span>
-        <span style="--c: var(--fail)">Protected, fails</span>
-        <span style="--c: var(--na)">Not assessed</span>
-      </div>
-      <div class="table-scroll" style="margin-top:10px"><table id="movementTable"></table></div>
-      <p class="caption">Protected movements (EB, WB, C-N, C-S) pass when the upper end of their 95% interval is
-        no more than +2 s per vehicle. This is an experimental threshold, not an engineering or legal standard,
-        and each interval is individual rather than a simultaneous guarantee. Side-road movements at A and B were
-        never given a criterion.</p>
+      <h3>Whole network</h3>
+      <div class="table-scroll"><table id="metricTable"></table></div>
     </div>
 
     <div class="grid-2">
       <div class="card">
-        <h3 id="periodsTitle">Network delay change in every period</h3>
+        <h3>Every time of day</h3>
         <div class="chart" id="periodChart"></div>
-        <p class="caption">Mean change with 95% bootstrap interval, s per junction passage.</p>
+        <p class="caption">Change in average wait per junction, seconds.</p>
       </div>
       <div class="card">
-        <h3>Change by matched seed</h3>
+        <h3>All 30 simulated runs</h3>
         <div class="chart" id="seedChart"></div>
-        <p class="caption">Network delay change for each of the 30 seeds in the selected period. Blue: candidate
-          lower. Orange: candidate higher. Dashed line: mean.</p>
+        <p class="caption">Blue: candidate faster. Orange: candidate slower. Dashed line: average.</p>
       </div>
     </div>
 
     <div class="card">
-      <h3>Signal timings</h3>
+      <h3>Light timings</h3>
       <div class="chart" id="timingChart"></div>
       <div class="legend">
-        <span style="--c: var(--ew)">EW effective green</span>
-        <span style="--c: var(--ns)">NS effective green</span>
-        <span style="--c: var(--loss)">6 s interphase lost time</span>
+        <span style="--c: var(--ew)">Main road green</span>
+        <span style="--c: var(--ns)">Side road green</span>
+        <span style="--c: var(--loss)">Changeover (6 s)</span>
       </div>
-      <p class="caption">Each window repeats every cycle. A window that passes the end of the cycle continues from
-        0 s. Analytical effective-green windows, not controller displays.</p>
+      <p class="caption">One full cycle of the lights at each junction. Green that runs past the end of the cycle carries on from 0 s.</p>
     </div>
   </section>
 
   <section id="method" aria-labelledby="method-h">
-    <h2 id="method-h">How it works</h2>
+    <h2 id="method-h">5. How it was built</h2>
     <div class="grid-2">
       <div class="card method">
         <dl>
-          <dt>Synthetic demand</dt>
-          <dd>A seeded day of 15-minute counts with AM and PM peaks, split into four operating periods.</dd>
-          <dt>Webster timing</dt>
-          <dd>Critical flow ratios against an assumed 1,800 veh/h saturation flow give a cycle from
-            C = (1.5L + 5) / (1 &minus; Y), with 12 s lost time, bounded to 40 to 150 s.</dd>
-          <dt>Coordination and offsets</dt>
-          <dd>A common cycle per period, then offsets searched for progression and simulated delay under a
-            directional fairness constraint, using separate training and holdout seeds.</dd>
-          <dt>Green allocation</dt>
-          <dd>Junction C's split and offset were searched jointly in the peaks (Phase 4F-3B).</dd>
-          <dt>Paired audit</dt>
-          <dd>Phase 4G froze three strategies and ran each on the same 30 seeds (500 to 529) in four representative
-            hours, pairing results by seed and movement.</dd>
+          <dt>Traffic</dt>
+          <dd>A simulated day of traffic counts with morning and evening peaks.</dd>
+          <dt>Light timings</dt>
+          <dd>Webster's method sets cycle length and green time; offsets line junctions up so cars hit green waves.</dd>
+          <dt>Simulation</dt>
+          <dd>Individual cars queue at each junction and leave one every 2 seconds on green.</dd>
+          <dt>Fair testing</dt>
+          <dd>Every plan faces the same 30 random traffic patterns. Plans are chosen on one set and tested on another.</dd>
         </dl>
       </div>
       <div class="card">
-        <h3>Limitations</h3>
+        <h3>Keep in mind</h3>
         <ul class="tight">
-          <li>Synthetic rather than observed traffic counts.</li>
-          <li>Unlimited queue storage, so no spillback or junction blocking.</li>
-          <li>Simplified two-phase control with no actuation or plan transitions.</li>
-          <li>Constant speed and fixed discharge headway.</li>
-          <li>No turning movements, lane groups or pedestrian phases.</li>
-          <li>No field calibration or validation.</li>
-          <li>Four representative hours, not a continuous day.</li>
-          <li>Local searches only; no plan is claimed to be optimal.</li>
+          <li>The traffic is simulated, not counted on a real road.</li>
+          <li>The model is simplified: no turning traffic, pedestrians or queues blocking back to the previous junction.</li>
+          <li>The results show the method, not settings for a real road.</li>
         </ul>
       </div>
     </div>
@@ -320,18 +336,15 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
 
   <section id="related" aria-labelledby="related-h">
     <h2 id="related-h">Related project</h2>
-    <p class="section-intro">The <a href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Liverpool bus
-      real-time panel</a> uses GTFS schedules and real-time vehicle location data to measure how Route 10A
-      journeys compare with their timetabled runtimes. It shows when journeys ran late, but its data cannot
-      separate junction delay from other causes. This project looks at one of those causes from the other
-      direction: it simulates how signal timing distributes delay, on a synthetic corridor. It makes no claim
-      about bus performance in Liverpool.</p>
+    <p class="section-intro">My <a href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Liverpool bus
+      panel</a> uses timetables and real-time bus location data to show when Route 10A journeys ran late. That data
+      can show <em>when</em> buses lose time but not <em>why</em>. This project looks at one possible reason,
+      junction delay, in a controlled simulation.</p>
   </section>
 
   <footer>
-    <p>Independent educational project by Nanxi Lu. Data: <code>outputs/data/phase4g_*.csv</code>, exported to
-      <code>docs/assets/phase4g_results.json</code> by <code>scripts/export_site_data.py</code>.
-      <a href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Source and tests on GitHub</a>.</p>
+    <p>Independent educational project by Nanxi Lu.
+      <a href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Source, data and tests on GitHub</a>.</p>
   </footer>
 </div>
 
@@ -461,21 +474,77 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
   }
 
   // ------------------------------------------------------------ headline
+  function tilesHtml(tiles) {
+    return tiles.map(([l, v, cls, s]) =>
+      `<div class="tile"><div class="label">${l}</div><div class="value ${cls}">${v}</div><div class="sub">${s}</div></div>`).join("");
+  }
   function renderHeadline() {
     const c = DATA.comparisons["PM peak|Phase3A|Integrated"];
-    const e = DATA.comparisons["PM peak|Phase4E|Integrated"];
     const d = c.metrics.mean_delay_per_passage_s;
-    const q = c.metrics.total_queue_at_hour;
     const eb = c.movements.find((m) => m.movement === "EB");
-    const eb4e = e.movements.find((m) => m.movement === "EB");
-    const tiles = [
-      ["Network delay change", fmt(d.mean_change, 1) + " s", "lower", `per junction passage; 95% interval ${fmt(d.ci_lower)} to ${fmt(d.ci_upper)} s`],
-      ["Seeds with lower delay", `${d.seeds_lower} / ${d.replications}`, "lower", "matched arrival seeds"],
-      ["Residual queue change", fmt(q.mean_change, 1) + " veh", "lower", "vehicles still queued at the end of the hour"],
-      ["Eastbound delay change", fmt(eb.mean_change, 1) + " s", "fail", `per vehicle; interval ${fmt(eb.ci_lower)} to ${fmt(eb.ci_upper)} s. Fails the +2 s limit (passes vs Phase 4E at ${fmt(eb4e.mean_change)} s)`],
-    ];
-    $("headlineTiles").innerHTML = tiles.map(([l, v, cls, s]) =>
-      `<div class="tile"><div class="label">${l}</div><div class="value ${cls}">${v}</div><div class="sub">${s}</div></div>`).join("");
+    $("headlineTiles").innerHTML = tilesHtml([
+      ["Average wait per junction", fmt(d.mean_change, 1) + " s", "lower", `faster in ${d.seeds_lower} of ${d.replications} simulated rush hours`],
+      ["Eastbound drivers", fmt(eb.mean_change, 1) + " s", "fail", `per car, over the 2 s limit (95% interval ${fmt(eb.ci_lower, 1)} to ${fmt(eb.ci_upper, 1)} s)`],
+    ]);
+  }
+
+  // ------------------------------------------------------------ the fix
+  function renderFix() {
+    const f = DATA.phase4h;
+    const net = (b, c) => f.network.find((r) => r.benchmark === b && r.candidate === c);
+    const mov = (b, c, m) => f.movements.find((r) => r.benchmark === b && r.candidate === c && r.movement === m);
+    const h = net("Phase3A", "Phase4H"), i = net("Phase3A", "Integrated");
+    const ebH = mov("Phase3A", "Phase4H", "EB"), wbH = mov("Phase3A", "Phase4H", "WB");
+    $("fixTiles").innerHTML = tilesHtml([
+      ["Average wait per junction", fmt(h.mean_change, 1) + " s", "lower", `vs original plan; Integrated managed ${fmt(i.mean_change, 1)} s on the same runs`],
+      ["Eastbound drivers", fmt(ebH.mean_change, 1) + " s", "ok", "per car, within the 2 s limit \u2713"],
+      ["Westbound drivers", fmt(wbH.mean_change, 1) + " s", "lower", "per car, still better than the original \u2713"],
+    ]);
+    const order = ["EB", "WB", "C_N", "C_S"];
+    const cls = { Pass: "check-pass", Fail: "check-fail" };
+    const txt = { Pass: "\u2713", Fail: "\u2717 over limit" };
+    $("fixTable").innerHTML = `<thead><tr><th>Direction</th><th>Integrated vs original</th><th></th><th>Phase 4H vs original</th><th></th></tr></thead><tbody>` +
+      order.map((m) => {
+        const a = mov("Phase3A", "Integrated", m), b = mov("Phase3A", "Phase4H", m);
+        return `<tr><td>${a.label}</td><td>${fmt(a.mean_change, 2)} s</td><td class="${cls[a.check]}">${txt[a.check]}</td>
+          <td>${fmt(b.mean_change, 2)} s</td><td class="${cls[b.check]}">${txt[b.check]}</td></tr>`;
+      }).join("") + "</tbody>";
+
+    // Dot plot for the two corridor directions, each with a header row.
+    const rows = [];
+    ["EB", "WB"].forEach((m) => {
+      rows.push(["header", m, null]);
+      rows.push(["Integrated", m, mov("Phase3A", "Integrated", m)]);
+      rows.push(["Phase 4H", m, mov("Phase3A", "Phase4H", m)]);
+    });
+    const rowH = 26, top = 18, H = top + rows.length * rowH + 50;
+    const { svg, width } = svgFor($("fixChart"), H);
+    const left = 92, right = width - 20;
+    const sx = scale(-12, 5, left, right);
+    const tk = ticks(-12, 5, width < 500 ? 5 : 9);
+    tk.forEach((t) => el("line", { x1: sx(t), x2: sx(t), y1: top - 4, y2: top + rows.length * rowH, stroke: css("--grid") }, svg));
+    el("line", { x1: sx(0), x2: sx(0), y1: top - 4, y2: top + rows.length * rowH, stroke: css("--ink-2") }, svg);
+    el("line", { x1: sx(2), x2: sx(2), y1: top - 10, y2: top + rows.length * rowH, stroke: css("--fail"), "stroke-dasharray": "4 3", "stroke-width": 1.5 }, svg);
+    text(svg, sx(2) + 4, top - 8, "2 s limit", { fill: css("--fail"), "font-size": 11.5 });
+    rows.forEach(([plan, m, r], k) => {
+      const y = top + k * rowH + rowH / 2;
+      if (plan === "header") {
+        text(svg, 4, y + 5, m === "EB" ? "Eastbound" : "Westbound", { fill: css("--ink"), "font-weight": 600, "font-size": 13 });
+        return;
+      }
+      const isH = plan === "Phase 4H";
+      const colour = r.check === "Fail" ? css("--fail") : isH ? css("--lower") : css("--na");
+      text(svg, left - 8, y + 4, plan, { "text-anchor": "end", "font-size": 12 });
+      el("line", { x1: sx(r.ci_lower), x2: sx(r.ci_upper), y1: y, y2: y, stroke: colour, "stroke-width": 3, "stroke-linecap": "round" }, svg);
+      const dot = el("circle", { cx: sx(r.mean_change), cy: y, r: 6, fill: colour, stroke: css("--surface"), "stroke-width": 2 }, svg);
+      hover(dot, `<strong>${m}, ${plan}</strong><br>${fmt(r.mean_change)} s per car vs original<br>95% interval ${fmt(r.ci_lower)} to ${fmt(r.ci_upper)}`);
+    });
+    xAxis(svg, sx, tk, top + rows.length * rowH, left, right, "Change in wait per car vs original plan (s)");
+
+    const wb4e = mov("Phase4E", "Phase4H", "WB");
+    $("fixNote").innerHTML = `The trade-off moves rather than disappears: compared with Phase 4E, westbound drivers wait ${wb4e.mean_change.toFixed(1)} s longer.
+      But every protected direction now ends up better off, or within 2 seconds, of where it started. Phase 4H gives Junction C's
+      side roads ${f.selected.C_ns_green_s} s of green instead of 46 s and keeps the Phase 4E offset.`;
   }
 
   // ------------------------------------------------------------ explorer
@@ -493,22 +562,29 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     const fails = sel.comp.movements.filter((m) => m.check === "Fail");
     if (fails.length) {
       let extra = "";
-      if (sel.key === "PM peak|Phase3A|Integrated") extra = " Network delay falls, but eastbound delay rises beyond the experimental +2 s limit against the original baseline. The same candidate passes against Phase 4E.";
-      else if (sel.p === "AM peak" && sel.b === "Phase3A") extra = " This is marginal: the mean change is under 1 s and only the upper bound crosses +2 s. The AM Integrated plan is identical to Phase 4E, whose AM offsets were chosen before north-south traffic was modelled.";
+      if (sel.key === "PM peak|Phase3A|Integrated") extra = ' Phase 4H fixes this: see <a href="#fix">The fix</a>.';
+      else if (sel.p === "AM peak" && sel.b === "Phase3A") extra = " A marginal miss: the average change is under 1 s, but the upper end of the interval just passes 2 s.";
       v.className = "verdict fail";
-      v.innerHTML = `<strong class="f">⚠ Fairness check failed</strong> (${label(sel.c)} vs ${label(sel.b)}, ${sel.p}): ` +
-        fails.map((m) => `<strong>${m.label}</strong> mean ${fmt(m.mean_change)} s/veh, interval ${fmt(m.ci_lower)} to ${fmt(m.ci_upper)} s`).join("; ") + "." + extra;
+      v.innerHTML = `<strong class="f">⚠ Over the fairness limit</strong> (${label(sel.c)} vs ${label(sel.b)}, ${sel.p}): ` +
+        fails.map((m) => `<strong>${m.label}</strong> ${fmt(m.mean_change, 1)} s per car (interval up to ${fmt(m.ci_upper, 1)} s)`).join("; ") + "." + extra;
     } else if (sel.comp.identical_plans) {
       v.className = "verdict info";
-      v.textContent = `In the ${sel.p}, ${label(sel.c)} uses exactly the same signal timings as ${label(sel.b)}, so every paired difference is zero by construction.`;
+      v.textContent = `In the ${sel.p}, ${label(sel.c)} uses exactly the same timings as ${label(sel.b)}, so there is no difference.`;
     } else {
       v.className = "verdict pass";
-      v.textContent = `✓ All four protected movements pass the +2 s upper-bound check for ${label(sel.c)} vs ${label(sel.b)} in the ${sel.p}.`;
+      v.textContent = `✓ Every protected direction stays within the 2 s limit (${label(sel.c)} vs ${label(sel.b)}, ${sel.p}).`;
     }
     return true;
   }
   function renderMetricTable(sel) {
-    const rows = Object.entries(DATA.meta.metrics).map(([k, meta]) => {
+    const friendly = {
+      mean_delay_per_passage_s: ["Average wait per junction", "seconds"],
+      corridor_mean_delay_s: ["Main road (EB + WB) wait", "seconds per car"],
+      ns_mean_delay_s: ["Side road wait", "seconds per car"],
+      total_queue_at_hour: ["Cars still queued at the end of the hour", "cars"],
+    };
+    const rows = Object.keys(DATA.meta.metrics).map((k) => {
+      const meta = { label: friendly[k][0], unit: friendly[k][1] };
       const m = sel.comp.metrics[k];
       const d = k === "total_queue_at_hour" ? 2 : 3;
       return `<tr><td>${meta.label}<br><span style="color:var(--muted);font-size:12.5px">${meta.unit}</span></td>
@@ -517,16 +593,16 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
         <td>${m.seeds_lower} / ${m.replications}</td></tr>`;
     }).join("");
     $("metricTable").innerHTML = `<thead><tr><th>Measure</th><th>${label(sel.b)}</th><th>${label(sel.c)}</th>
-      <th>Change</th><th>95% interval</th><th>Seeds lower</th></tr></thead><tbody>${rows}</tbody>`;
+      <th>Change</th><th>95% interval</th><th>Runs faster</th></tr></thead><tbody>${rows}</tbody>`;
   }
   function renderMovementTable(sel) {
     const cls = { Pass: "check-pass", Fail: "check-fail", "Not assessed": "check-na" };
-    const txt = { Pass: "✓ Pass", Fail: "✗ Fail", "Not assessed": "Not assessed" };
+    const txt = { Pass: "✓ within", Fail: "✗ over", "Not assessed": "no limit set" };
     const rows = sel.comp.movements.map((m) => `<tr><td>${m.label}${m.protected ? " *" : ""}</td>
       <td class="${cls[m.check]}">${txt[m.check]}</td><td>${fmt(m.mean_change)}</td>
       <td>${fmt(m.ci_lower)} to ${fmt(m.ci_upper)}</td><td>${m.benchmark_mean.toFixed(2)}</td><td>${m.candidate_mean.toFixed(2)}</td></tr>`).join("");
-    $("movementTable").innerHTML = `<thead><tr><th>Movement</th><th>+2 s check</th><th>Change (s/veh)</th>
-      <th>95% interval</th><th>${label(sel.b)} (s/veh)</th><th>${label(sel.c)} (s/veh)</th></tr></thead><tbody>${rows}</tbody>`;
+    $("movementTable").innerHTML = `<thead><tr><th>Direction</th><th>2 s limit</th><th>Change per car (s)</th>
+      <th>95% interval</th><th>${label(sel.b)} wait (s)</th><th>${label(sel.c)} wait (s)</th></tr></thead><tbody>${rows}</tbody>`;
   }
   function renderFairness(sel) {
     const ms = sel.comp.movements;
@@ -555,7 +631,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
       hover(hit, `<strong>${m.label}</strong>${m.protected ? " (protected)" : ""}<br>Change: ${fmt(m.mean_change)} s/veh<br>95% interval: ${fmt(m.ci_lower)} to ${fmt(m.ci_upper)}<br>+2 s check: ${m.check}`);
       void bar;
     });
-    xAxis(svg, sx, tk, top + ms.length * rowH, left, right, "Delay change (s per vehicle)");
+    xAxis(svg, sx, tk, top + ms.length * rowH, left, right, "Change in wait per car (s)");
   }
   function renderPeriods(sel) {
     const metric = "mean_delay_per_passage_s";
@@ -608,7 +684,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     el("line", { x1: left, x2: right, y1: sy(m.mean_change), y2: sy(m.mean_change), stroke: css("--ink"), "stroke-dasharray": "4 3" }, svg);
     text(svg, left, bottom + 18, "seed 500", { fill: css("--muted"), "font-size": 11 });
     text(svg, right, bottom + 18, "seed 529", { "text-anchor": "end", fill: css("--muted"), "font-size": 11 });
-    text(svg, (left + right) / 2, bottom + 36, `${sel.p}: s per junction passage`, { "text-anchor": "middle", "font-size": 12.5 });
+    text(svg, (left + right) / 2, bottom + 36, `${sel.p}: change in average wait per junction (s)`, { "text-anchor": "middle", "font-size": 12.5 });
   }
   function renderTiming(sel) {
     const strategies = [sel.b, sel.c];
@@ -644,7 +720,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     });
     const sx = scale(0, cycle, left, right);
     const axisY = top + strategies.length * blockH;
-    xAxis(svg, sx, ticks(0, cycle, width < 500 ? 4 : 6), axisY, left, right, "Seconds within cycle");
+    xAxis(svg, sx, ticks(0, cycle, width < 500 ? 4 : 6), axisY, left, right, "Seconds into the cycle");
   }
 
   function renderExplorer() {
@@ -664,6 +740,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
   function renderAll() {
     if (!DATA) return;
     renderCorridor();
+    renderFix();
     renderExplorer();
   }
 
@@ -680,6 +757,7 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
       fill($("benchmark"), DATA.meta.benchmarks, "Phase3A", label);
       fill($("candidate"), DATA.meta.candidates, "Integrated", label);
       renderHeadline();
+      renderFix();
       renderAll();
       let t;
       window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderAll, 120); });
