@@ -417,3 +417,26 @@ def test_phase4h_integrated_plan_matches_phase4g() -> None:
     row = saved.loc[(saved["period"] == "PM peak") & (saved["strategy"] == "Integrated") & (saved["junction"] == "C")].iloc[0]
     for key in ("ew_green_s", "ns_green_s", "ew_offset_s", "ns_offset_s"):
         assert c[key] == row[key]
+
+
+# Phase 4I: AM peak under the Phase 4H rules.
+def test_phase4i_protocol_and_outcome() -> None:
+    from workflows.stage4f_4g_full_junction import (
+        EARLIER_SEEDS,
+        PHASE4H_HOLDOUT_SEEDS,
+        PHASE4H_TRAIN_SEEDS,
+        PHASE4I_HOLDOUT_SEEDS,
+        PHASE4I_TRAIN_SEEDS,
+    )
+
+    used = EARLIER_SEEDS | set(PHASE4H_TRAIN_SEEDS) | set(PHASE4H_HOLDOUT_SEEDS)
+    assert not used & (set(PHASE4I_TRAIN_SEEDS) | set(PHASE4I_HOLDOUT_SEEDS))
+    selected = pd.read_csv(DATA_DIR / "phase4i_selected_plan.csv").iloc[0]
+    assert not bool(selected["selected"])
+    candidates = pd.read_csv(DATA_DIR / "phase4i_training_candidates.csv")
+    assert len(candidates) == 16
+    assert candidates["network_performance_pass"].all()
+    assert not candidates["movement_fairness_pass"].any()
+    fairness = pd.read_csv(DATA_DIR / "phase4i_training_fairness.csv")
+    eb_added = fairness.loc[(fairness["movement"] == "EB") & (fairness["extra_ns_green_s"] > 0)]
+    assert (eb_added["ci_upper_s"] > FAIRNESS_LIMIT_S).all()
