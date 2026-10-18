@@ -440,3 +440,42 @@ def test_phase4i_protocol_and_outcome() -> None:
     fairness = pd.read_csv(DATA_DIR / "phase4i_training_fairness.csv")
     eb_added = fairness.loc[(fairness["movement"] == "EB") & (fairness["extra_ns_green_s"] > 0)]
     assert (eb_added["ci_upper_s"] > FAIRNESS_LIMIT_S).all()
+
+
+# Phase 4J: demand stress test of the frozen Phase 4H plan.
+def test_phase4j_scale_demand_scales_counts_only() -> None:
+    from workflows.stage4f_4g_full_junction import load_inputs_phase4f2, scale_demand
+
+    traffic, _, _ = load_inputs_phase4f2()
+    scaled = scale_demand(traffic, 1.2)
+    assert np.allclose(scaled["volume_15min"], traffic["volume_15min"] * 1.2)
+    assert scaled.drop(columns="volume_15min").equals(traffic.drop(columns="volume_15min"))
+    with pytest.raises(ValueError):
+        scale_demand(traffic, 0.0)
+
+
+def test_phase4j_phase4h_plan_holds_from_80_to_120_percent_demand() -> None:
+    from workflows.stage4f_4g_full_junction import (
+        EARLIER_SEEDS,
+        PHASE4H_HOLDOUT_SEEDS,
+        PHASE4I_HOLDOUT_SEEDS,
+        PHASE4J_FACTORS,
+        PHASE4J_SEEDS,
+    )
+
+    assert PHASE4J_FACTORS == (0.8, 0.9, 1.0, 1.1, 1.2)
+    assert not (EARLIER_SEEDS | set(PHASE4H_HOLDOUT_SEEDS) | set(PHASE4I_HOLDOUT_SEEDS)) & set(PHASE4J_SEEDS)
+    network = pd.read_csv(DATA_DIR / "phase4j_network_summary.csv")
+    movements = pd.read_csv(DATA_DIR / "phase4j_movement_summary.csv")
+    protected = movements.loc[movements["protected_movement"]]
+    for factor in PHASE4J_FACTORS:
+        h = protected.loc[(protected["demand_factor"] == factor) & (protected["candidate"] == "Phase4H")]
+        assert len(h) == 4 and h["passes_2s_upper"].all()
+        i_eb = protected.loc[
+            (protected["demand_factor"] == factor)
+            & (protected["candidate"] == "Integrated")
+            & (protected["movement"] == "EB")
+        ].iloc[0]
+        assert not bool(i_eb["passes_2s_upper"])
+        net = network.loc[(network["demand_factor"] == factor) & (network["candidate"] == "Phase4H")].iloc[0]
+        assert net["ci_upper_s"] < 0 and net["seeds_better"] == 30

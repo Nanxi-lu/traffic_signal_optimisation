@@ -1,4 +1,4 @@
-"""Phases 4F to 4I: full-junction simulation, green-split optimisation and audits.
+"""Phases 4F to 4J: full-junction simulation, green-split optimisation and audits.
 
 Merged from the original phase runner scripts. Each section keeps the
 functions of one phase; run a phase with ``python -m workflows <phase>`` from
@@ -43,6 +43,7 @@ PHASE_DESCRIPTIONS = {
     "phase4g": "Phase 4G integrated audit",
     "phase4h": "Phase 4H PM plan with fairness against Phase 3A",
     "phase4i": "Phase 4I AM plan with fairness against Phase 3A",
+    "phase4j": "Phase 4J demand stress test of the Phase 4H plan",
 }
 
 # ============================================================================
@@ -2560,6 +2561,95 @@ def run_phase4i() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         PHASE4I_INTEGRATED_PAIR,
     )
 
+# ============================================================================
+# Phase 4J demand stress test of the Phase 4H plan (python -m workflows phase4j)
+# Checks whether the PM Phase 4H plan still keeps every protected movement
+# within the +2 s limit against Phase 3A when demand differs from the level
+# it was chosen for. Every approach's 15-minute counts are scaled by the same
+# factor (80% to 120%); within a factor all plans receive identical arrivals.
+# No plan is re-tuned. Fixed before the first run: fresh seeds 800-829.
+# ============================================================================
+
+PHASE4J_PERIOD = "PM peak"
+PHASE4J_FACTORS = (0.8, 0.9, 1.0, 1.1, 1.2)
+PHASE4J_SEEDS = range(800, 830)
+PHASE4J_NETWORK_METRICS_PATH = DATA_DIR / "phase4j_network_metrics.csv"
+PHASE4J_MOVEMENT_METRICS_PATH = DATA_DIR / "phase4j_movement_metrics.csv"
+PHASE4J_NETWORK_SUMMARY_PATH = DATA_DIR / "phase4j_network_summary.csv"
+PHASE4J_MOVEMENT_SUMMARY_PATH = DATA_DIR / "phase4j_movement_summary.csv"
+
+
+def scale_demand(traffic: pd.DataFrame, factor: float) -> pd.DataFrame:
+    """Scale every 15-minute count, and therefore every Poisson rate, by factor."""
+
+    if not np.isfinite(factor) or factor <= 0:
+        raise ValueError("Demand factor must be positive.")
+    scaled = traffic.copy()
+    scaled["volume_15min"] = scaled["volume_15min"].astype(float) * float(factor)
+    return scaled
+
+
+def run_phase4j() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Stress-test the frozen Phase 4H plan at five demand levels."""
+
+    used = (
+        EARLIER_SEEDS
+        | set(PHASE4H_TRAIN_SEEDS) | set(PHASE4H_HOLDOUT_SEEDS)
+        | set(PHASE4I_TRAIN_SEEDS) | set(PHASE4I_HOLDOUT_SEEDS)
+    )
+    if used & set(PHASE4J_SEEDS):
+        raise ValueError("Phase 4J seeds must not overlap earlier phases.")
+    selected = pd.read_csv(PHASE4H_SELECTED_PATH).iloc[0]
+    phase4h_pair = (int(selected["extra_ns_green_s"]), int(selected["C_ew_offset_s"]))
+
+    traffic, plans_3a_table, plans_4e_table = load_inputs_phase4f2()
+    built = build_period_plans(plans_3a_table, plans_4e_table, PHASE4J_PERIOD)
+    plans_4e = built["Phase4E"]
+    strategies = {
+        "Phase3A": built["Phase3A"],
+        "Integrated": make_candidate_plan(plans_4e, *PHASE4H_INTEGRATED_PAIR),
+        "Phase4H": make_candidate_plan(plans_4e, *phase4h_pair),
+    }
+    movement_frames, network_frames, net_summaries, mov_summaries = [], [], [], []
+    for factor in PHASE4J_FACTORS:
+        cache = prepare_arrivals(scale_demand(traffic, factor), PHASE4J_PERIOD, PHASE4J_SEEDS)
+        factor_mov, factor_net = [], []
+        for name, plans in strategies.items():
+            movements, network = evaluate_fixed_plans(cache, plans, PHASE4J_PERIOD, name)
+            movements.insert(0, "demand_factor", factor)
+            network.insert(0, "demand_factor", factor)
+            factor_mov.append(movements)
+            factor_net.append(network)
+        movements = pd.concat(factor_mov, ignore_index=True)
+        network = pd.concat(factor_net, ignore_index=True)
+        net_summary, mov_summary = summarise_against_baseline(
+            movements.drop(columns="demand_factor"),
+            network.drop(columns="demand_factor"),
+            [("Phase3A", "Phase4H"), ("Phase3A", "Integrated")],
+            PHASE4J_PERIOD,
+        )
+        net_summary.insert(0, "demand_factor", factor)
+        mov_summary.insert(0, "demand_factor", factor)
+        movement_frames.append(movements)
+        network_frames.append(network)
+        net_summaries.append(net_summary)
+        mov_summaries.append(mov_summary)
+        print(f"Completed demand factor {factor:.0%}")
+
+    pd.concat(movement_frames, ignore_index=True).to_csv(PHASE4J_MOVEMENT_METRICS_PATH, index=False)
+    pd.concat(network_frames, ignore_index=True).to_csv(PHASE4J_NETWORK_METRICS_PATH, index=False)
+    network_summary = pd.concat(net_summaries, ignore_index=True)
+    movement_summary = pd.concat(mov_summaries, ignore_index=True)
+    network_summary.to_csv(PHASE4J_NETWORK_SUMMARY_PATH, index=False)
+    movement_summary.to_csv(PHASE4J_MOVEMENT_SUMMARY_PATH, index=False)
+    print("\nPhase 4J network delay change against Phase 3A:")
+    print(network_summary[["demand_factor", "candidate", "mean_delay_change_s", "ci_lower_s", "ci_upper_s", "seeds_better"]].to_string(index=False))
+    print("\nProtected movements against Phase 3A:")
+    protected = movement_summary.loc[movement_summary["protected_movement"]]
+    print(protected[["demand_factor", "candidate", "movement", "mean_delay_change_s", "ci_upper_s", "passes_2s_upper"]].to_string(index=False))
+    return network_summary, movement_summary
+
+
 
 PHASES = {
     "phase4f1": run_phase4f1,
@@ -2569,4 +2659,5 @@ PHASES = {
     "phase4g": run_phase4g,
     "phase4h": run_phase4h,
     "phase4i": run_phase4i,
+    "phase4j": run_phase4j,
 }
