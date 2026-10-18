@@ -101,7 +101,7 @@ body {
 }
 a { color: var(--accent); text-underline-offset: 2px; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
-header.hero { padding: 40px 0 24px; }
+header.hero { padding: 12px 0 24px; }
 .eyebrow { font-size: 14px; color: var(--ink-2); font-weight: 500; letter-spacing: 0.01em; margin: 0 0 8px; }
 h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 10px; letter-spacing: -0.015em; }
 h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
@@ -114,7 +114,15 @@ h3 { font-size: 17px; margin: 0 0 6px; }
   text-decoration: none; font-size: 15px; font-weight: 500;
 }
 .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
-.theme-toggle { margin-left: auto; cursor: pointer; font: inherit; }
+.topbar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 14px; }
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  cursor: pointer; padding: 0; text-decoration: none;
+}
+.icon-btn:hover { background: var(--panel); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn svg { width: 20px; height: 20px; }
 .notice {
   border-left: 4px solid var(--accent); background: var(--info-wash); padding: 12px 16px;
   border-radius: 4px; margin: 6px 0 0; font-size: 15px; color: var(--ink);
@@ -180,10 +188,9 @@ ul.tight li { margin: 3px 0; }
 footer { padding: 26px 0 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
 code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-radius: 4px; }
 @media (max-width: 640px) {
-  header.hero { padding-top: 26px; }
+  header.hero { padding-top: 6px; }
   .lead { font-size: 16.5px; }
   .controls { grid-template-columns: 1fr; }
-  .theme-toggle { margin-left: 0; }
   .tile .value { font-size: 26px; }
 }
 </style>
@@ -191,6 +198,12 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
 <body>
 <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
 <div class="wrap">
+  <nav class="topbar" aria-label="Site controls">
+    <a class="icon-btn" href="https://github.com/Nanxi-lu/traffic_signal_optimisation" aria-label="GitHub repository" title="GitHub repository">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+    </a>
+    <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme"></button>
+  </nav>
   <header class="hero">
     <p class="eyebrow">Educational Python project · Simulated traffic</p>
     <h1>Traffic Signal Optimisation</h1>
@@ -200,7 +213,6 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
       <a class="btn primary" href="https://github.com/Nanxi-lu/traffic_signal_optimisation">Code on GitHub</a>
       <a class="btn" href="https://github.com/Nanxi-lu/traffic_signal_optimisation/blob/main/docs/methodology.md">Full methodology</a>
       <a class="btn" href="https://nanxi-lu.github.io/liverpool_bus_realtime_panel/">Related: Liverpool bus panel</a>
-      <button class="btn theme-toggle" id="themeToggle" type="button" aria-label="Switch colour theme">Theme</button>
     </div>
   </header>
 
@@ -383,13 +395,29 @@ code { font-size: 0.92em; background: var(--panel); padding: 1px 5px; border-rad
     const saved = localStorage.getItem("tso-theme");
     if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
   } catch (e) { /* storage unavailable */ }
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="1.5" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22.5"></line><line x1="1.5" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22.5" y2="12"></line><line x1="4.6" y1="4.6" x2="6.4" y2="6.4"></line><line x1="17.6" y1="17.6" x2="19.4" y2="19.4"></line><line x1="4.6" y1="19.4" x2="6.4" y2="17.6"></line><line x1="17.6" y1="6.4" x2="19.4" y2="4.6"></line></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>';
+  const isDark = () => getComputedStyle(root).colorScheme.includes("dark");
+  function updateThemeIcon() {
+    // Sun while the light theme is showing, moon while the dark theme is showing.
+    const dark = isDark();
+    const button = $("themeToggle");
+    button.innerHTML = dark ? MOON : SUN;
+    const label = dark ? "Switch to light theme" : "Switch to dark theme";
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
+  }
+  updateThemeIcon();
   $("themeToggle").addEventListener("click", () => {
-    const dark = getComputedStyle(root).colorScheme.includes("dark");
-    const next = dark ? "light" : "dark";
+    const next = isDark() ? "light" : "dark";
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("tso-theme", next); } catch (e) { /* ignore */ }
+    updateThemeIcon();
     renderAll();
   });
+  try {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { updateThemeIcon(); renderAll(); });
+  } catch (e) { /* older browsers */ }
 
   const css = (name) => getComputedStyle(root).getPropertyValue(name).trim();
   const fmt = (v, d = 3, sign = true) => (sign && v > 0 ? "+" : "") + v.toFixed(d).replace("-", "−");
